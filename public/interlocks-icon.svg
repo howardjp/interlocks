@@ -23,9 +23,9 @@
      inkscape:cx="520.94238"
      inkscape:cy="494.46826"
      inkscape:window-width="1920"
-     inkscape:window-height="1080"
+     inkscape:window-height="1022"
      inkscape:window-x="1470"
-     inkscape:window-y="0"
+     inkscape:window-y="30"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg12" />
   <svg:defs
@@ -41,13 +41,6 @@
      y="70.300003" />
   <svg:path
      id="rect14"
-     style="fill:#073984;fill-opacity:1;stroke:#05285b;stroke-width:4.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
+     style="fill:#073984;fill-opacity:1;stroke:none;stroke-width:4.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
      d="M 430.3,70.300739 V 1222.3007 h 336 144 v -36 -72 h -72 v 72 h -72 V 970.30074 h 72 v 71.99996 h 72 v -71.99996 -72 -72 h -72 v 72 h -72 v -216 h 72 v 72 h 72 v -72 -72 -72 h -72 v 72 h -72 v -216 h 72 v 72 h 72 v -72 -72 -72 h -72 v 72 h -72 v -216 h 72 v 72 h 72 v -72 -36.000001 h -144 z" />
-  <svg:rect
-     style="fill:none;fill-opacity:1;stroke:#05285b;stroke-width:9.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
-     id="rect34"
-     width="1152"
-     height="1152"
-     x="430.29999"
-     y="70.300003" />
 </svg:svg>

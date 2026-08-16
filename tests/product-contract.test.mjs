@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -10,8 +11,16 @@ test("the product surface exposes every end-to-end prototype workflow", async ()
 });
 
 test("the authoritative icon is present byte-for-byte", async () => {
-  const icon = await readFile(new URL("../public/interlocks-icon.svg", import.meta.url), "utf8");
-  assert.match(icon, /viewBox="425\.5 65\.5 1161\.6 1161\.5999"/);
-  assert.match(icon, /fill:#ffdf7e/);
-  assert.match(icon, /fill:#073984/);
+  const icon = await readFile(new URL("../public/interlocks-icon.svg", import.meta.url));
+  assert.equal(
+    createHash("sha256").update(icon).digest("hex"),
+    "cf25be839bef85148f766fbbaa7dbb719602b535d71808565bbb21a4c9af6411",
+  );
+});
+
+test("the icon boundary uses the approved brand color without altering the mark", async () => {
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(styles, /--brand-outline:#05285bff/);
+  assert.match(styles, /\.brand img\{[^}]*border:1px solid var\(--brand-outline\)/);
+  assert.match(styles, /\.loading-screen img,\.fatal-screen img\{[^}]*border:1px solid var\(--brand-outline\)/);
 });
