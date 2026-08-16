@@ -24,3 +24,15 @@ test("the icon boundary uses the approved brand color without altering the mark"
   assert.match(styles, /\.brand img\{[^}]*border:1px solid var\(--brand-outline\)/);
   assert.match(styles, /\.loading-screen img,\.fatal-screen img\{[^}]*border:1px solid var\(--brand-outline\)/);
 });
+
+test("dark mode is system-aware, persistent, and accessible", async () => {
+  const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
+  const source = await readFile(new URL("../app/components/interlocks-app.tsx", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(layout, /strategy="beforeInteractive"/);
+  assert.match(layout, /prefers-color-scheme: dark/);
+  assert.match(source, /THEME_STORAGE_KEY = "interlocks:theme:v1"/);
+  assert.match(source, /localStorage\.setItem\(THEME_STORAGE_KEY,next\)/);
+  assert.match(source, /aria-label=\{`Switch to \$\{theme==="dark"\?"light":"dark"\} mode`\}/);
+  assert.match(styles, /html\[data-theme="dark"\]/);
+});
