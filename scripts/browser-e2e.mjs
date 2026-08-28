@@ -88,6 +88,9 @@ try {
   await checkDialog.locator("select[name='subjectEntityId']").selectOption("o-meridian");
   await checkDialog.getByLabel("Maryland Attorneys’ Rules of Professional Conduct authority status").selectOption("CONTROLLING");
   equal(await checkDialog.getByLabel("ABA Model Rules authority status").inputValue(), "COMPARATIVE_ONLY", "controlling law moves ABA to comparison");
+  const prospectiveFacts = checkDialog.locator(".question-editor").first().locator("details").filter({ hasText:"Organizations and prospective clients" });
+  await prospectiveFacts.locator("summary").click();
+  await prospectiveFacts.getByLabel("Did the lawyer receive significantly harmful information, or a confidence or secret under the selected rule?").selectOption("YES");
   await checkDialog.getByRole("button", { name: "Add another policy question" }).click();
   const chanceryQuestion = checkDialog.locator(".question-editor").nth(1);
   await chanceryQuestion.locator("textarea").fill("What Chancery appearance requirements apply?");
