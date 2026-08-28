@@ -167,6 +167,7 @@ test("view-as sessions are visibly read-only and commands refuse mutation", () =
 test("document UI sends the repository's bytesBase64 contract", () => {
   assert.match(files.checks, /values\.bytesBase64=/);
   assert.doesNotMatch(files.checks, /values\.base64=/);
+  assert.match(files.checks, /activeMode==="document"\?"document\.upload"/);
 });
 
 test("workspace export links preserve the selected workspace", () => {
