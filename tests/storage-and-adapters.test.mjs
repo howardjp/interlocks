@@ -110,6 +110,13 @@ const abstractMethods = [
   ["uploadDocument", []],
   ["createConsent", []],
   ["createScreen", []],
+  ["createPersonalAssociation", []],
+  ["endPersonalAssociation", []],
+  ["createAssociationInterest", []],
+  ["revokeAssociationInterest", []],
+  ["requestFamilyAccountLink", []],
+  ["respondFamilyAccountLink", []],
+  ["revokeFamilyAccountLink", []],
 ];
 
 for (const [method, args] of abstractMethods) {

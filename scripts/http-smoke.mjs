@@ -73,7 +73,7 @@ try {
   equal(healthResponse.headers.get("cache-control"), "no-store", "health is not cached");
   const health = await healthResponse.json();
   equal(health.status, "ok", "health status");
-  equal(health.schemaVersion, 5, "schema version");
+  equal(health.schemaVersion, 6, "schema version");
   equal(health.database, "sqlite", "test exercises SQLite boundary");
 
   let snapshotResponse = await request("/api/snapshot?workspace=ws-northstar", { headers: headers() });
@@ -86,6 +86,9 @@ try {
   equal(snapshot.policyPacks.length, 6, "first-wave legal policy catalog installed");
   check(snapshot.policyPacks.every((item) => item.version && item.contentHash && item.sourceUrl), "policy catalog is versioned and sourced");
   check(snapshot.availableWorkspaces.some((item) => item.workspaceId === "ws-blue-ridge"), "superadmin can enumerate workspaces");
+  equal(snapshot.familyAccountLinks.length, 1, "linked spouse appears for the account owner");
+  equal(snapshot.familyAccountLinks[0].otherPersonName, "Nina Basu", "linked spouse persona is available for demonstration");
+  check(!snapshot.entities.some((item) => ["Aperture Technologies","Microsoft Corporation"].includes(item.canonicalName)), "private family entities are not browsable workspace knowledge");
 
   const wrongTenant = await json("/api/snapshot?workspace=ws-blue-ridge", { headers: headers("acct-daniel", "ws-blue-ridge") }, 403);
   check(/forbidden|permission|authorized/i.test(wrongTenant.error), "cross-tenant reads are forbidden");
@@ -121,6 +124,45 @@ try {
   equal(checkResult.policyQuestions[0].evaluations.length, 2, "controlling Maryland and comparative ABA evaluated independently");
   check(checkResult.policyQuestions[0].evaluations.some((item) => item.packId === "maryland" && item.authorityStatus === "CONTROLLING"), "Maryland authority posture retained");
   check(checkResult.policyQuestions[0].evaluations.some((item) => item.packId === "aba-model" && item.authorityStatus === "COMPARATIVE_ONLY"), "ABA remains the comparative baseline");
+
+  const linkedFamilyCheck = (await command("check.create", {
+    matterId:"m-aster",
+    subjects:[{ name:"Aperture Technologies", role:"OTHER" }],
+    questions:[{ key:"linked-family-screen", text:"Does a consent-linked account surface an entity intersection?" }],
+  })).result;
+  const linkedFamilyHit = linkedFamilyCheck.hits.find((item) => item.matchedEntityName === "Aperture Technologies");
+  equal(linkedFamilyHit.sourceResourceType, "FAMILY_ACCOUNT_LINK", "linked-account match uses the consent link as provenance");
+  equal(linkedFamilyHit.sourceResourceId, "family-link-alex-nina", "linked-account evidence does not expose the spouse ledger row");
+  check(/underlying ledger detail remains private/i.test(linkedFamilyHit.explanation.reasons.join(" ")), "linked-account result carries its privacy boundary");
+
+  const directFamilyCheck = (await command("check.create", {
+    matterId:"m-aster",
+    participatingPersonIds:["p-maya"],
+    subjects:[{ name:"Microsoft Corporation", role:"OTHER" }],
+    questions:[{ key:"declared-family-screen", text:"Does a directly declared family interest require review?" }],
+  })).result;
+  const directFamilyHit = directFamilyCheck.hits.find((item) => item.matchedEntityName === "Microsoft Corporation");
+  equal(directFamilyHit.sourceResourceType, "DECLARED_FAMILY_INTEREST", "direct family declaration participates in covered-person checks");
+  check(/declared child/i.test(directFamilyHit.explanation.reasons.join(" ")), "direct declaration may disclose its authorized relationship category");
+
+  const familyAssociation = (await command("family.association.create", {
+    associatedPersonName:"HTTP Relative", relationshipType:"SIBLING", provenance:"HTTP end-to-end declaration",
+  }, null, "acct-priya")).result;
+  const familyInterest = (await command("family.interest.create", {
+    entityName:"HTTP Family Employer", entityKind:"ORGANIZATION", involvement:"VICE_PRESIDENT", description:"Vice president of operations",
+  }, familyAssociation.id, "acct-priya")).result;
+  const declaredMutationCheck = (await command("check.create", {
+    matterId:"m-aster", participatingPersonIds:["p-priya"], subjects:[{ name:"HTTP Family Employer", role:"OTHER" }],
+    questions:[{ key:"http-declaration", text:"Does the new direct declaration surface?" }],
+  })).result;
+  equal(declaredMutationCheck.hits.find((item) => item.matchedEntityName === "HTTP Family Employer").sourceResourceType, "DECLARED_FAMILY_INTEREST", "new direct declaration works through HTTP");
+  await command("family.interest.revoke", {}, familyInterest.id, "acct-priya");
+  await command("family.association.end", {}, familyAssociation.id, "acct-priya");
+
+  const familyLink = (await command("family.link.request", { targetEmail:"priya.shah@example.org", relationshipType:"SIBLING", expiresInDays:14 }, null, "acct-maya")).result;
+  equal(familyLink.status, "PENDING", "account link starts pending");
+  equal((await command("family.link.respond", { response:"ACCEPT" }, familyLink.id, "acct-priya")).result.status, "ACTIVE", "target account accepts consent link");
+  equal((await command("family.link.revoke", {}, familyLink.id, "acct-maya")).result.status, "REVOKED", "either linked account can revoke consent");
 
   const disclosure = (await command("disclosure.create", {
     personId: "p-jordan",
@@ -235,11 +277,16 @@ try {
   check(csvText.startsWith('\"Reference\",\"Title\"'), "CSV has stable columns");
   check(csvText.includes('\"Action state\",\"Human disposition\"'), "CSV separates workflow and judgment");
   const personal = await json("/api/export?kind=personal", { headers: headers("acct-jordan") });
-  equal(personal.schema, "interlocks.personal-ledger.v1", "personal ledger schema");
+  equal(personal.schema, "interlocks.personal-ledger.v2", "personal ledger schema");
   check(personal.entries.every((item) => ["PORTABLE", "RESTRICTED"].includes(item.disclosure_class)), "personal export respects disclosure classes");
+  equal(personal.linkedAccountLedgersIncluded, false, "personal export never embeds a linked account ledger");
+  const workspaceExportBody = await json("/api/export?kind=workspace&workspace=ws-northstar", { headers: headers() });
+  equal(workspaceExportBody.personalDataExcluded, true, "workspace export explicitly excludes personal family data");
+  check(!["ledger","personalAssociations","associationInterests","familyAccountLinks"].some((key) => Object.hasOwn(workspaceExportBody, key)), "workspace export contains no personal family aggregates");
   const checkExport = await json(`/api/export?kind=check&resourceId=${checkResult.id}&workspace=ws-northstar`, { headers: headers() });
   equal(checkExport.schema, "interlocks.conflict-check.v2", "conflict-check export schema");
   check(checkExport.hits.length === checkResult.hits.length, "check export contains all hits");
+  check(checkExport.hitEvidence.length >= checkExport.hits.length, "check export retains every independent evidence path");
   equal(checkExport.policyQuestions.length, 1, "check export contains policy questions");
   equal(checkExport.policySelections.length, 2, "check export contains authority selections");
   equal(checkExport.policyEvaluations.length, 2, "check export contains immutable evaluations");
@@ -255,10 +302,11 @@ try {
   equal(reset.cases.length, 5, "reset restores cases");
   equal(reset.policyPacks.length, 6, "reset preserves installed policy catalog");
   equal(reset.policyQuestions.length, 0, "reset removes demo policy evaluations");
+  equal(reset.familyAccountLinks.length, 1, "reset restores linked-account family demo");
   check(!reset.entities.some((item) => item.canonicalName === "HTTP Imported Entity"), "reset removes imported entity");
   check(!reset.documents.some((item) => item.filename === "http-evidence.txt"), "reset removes uploaded metadata");
 
-  console.log(`Production HTTP suite passed with ${assertions} assertions: security, identity, tenancy, authorization, policy packs, question-level legal analysis, checks, disclosure, judgment, controls, consent, screens, associated people, documents, imports, exports, administration, audit, and reset.`);
+  console.log(`Production HTTP suite passed with ${assertions} assertions: security, identity, tenancy, authorization, policy packs, question-level legal analysis, both family models, consent revocation, checks, disclosure, judgment, controls, screens, documents, imports, privacy-safe exports, administration, audit, and reset.`);
 } finally {
   server.kill("SIGTERM");
   await new Promise((resolve) => server.once("exit", resolve));

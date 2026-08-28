@@ -16,9 +16,9 @@ test("production configuration requires HTTPS, invite-safe mode, managed auth, a
 });
 
 test("PostgreSQL cutover has ordered native migrations for every critical aggregate", () => {
-  assert.equal(postgresCutover.status,"migration-ready"); assert.deepEqual(postgresMigrations.map((item)=>item.version),[1,2]);
+  assert.equal(postgresCutover.status,"migration-ready"); assert.deepEqual(postgresMigrations.map((item)=>item.version),[1,2,3]);
   const sql=postgresMigrations.map((migration)=>migration.sql).join("\n");
-  for(const table of ["persons","accounts","workspaces","workspace_memberships","entities","matters","personal_ledger_entries","documents","assertions","inferences","conflict_checks","conflict_hits","review_cases","human_determinations","conflict_consents","screens","audit_events","policy_packs","policy_questions","policy_authority_selections","policy_evaluations","policy_rule_results"]) assert.match(sql,new RegExp(`CREATE TABLE ${table}`));
+  for(const table of ["persons","accounts","workspaces","workspace_memberships","entities","matters","personal_ledger_entries","personal_associations","personal_association_interests","family_account_links","documents","assertions","inferences","conflict_checks","conflict_hits","review_cases","human_determinations","conflict_consents","screens","audit_events","policy_packs","policy_questions","policy_authority_selections","policy_evaluations","policy_rule_results"]) assert.match(sql,new RegExp(`CREATE TABLE ${table}`));
   assert.doesNotMatch(sql,/PRAGMA|AUTOINCREMENT|json_extract/);
 });
 
@@ -45,7 +45,7 @@ test("a legacy scored prototype migrates without losing records or carrying arit
     INSERT INTO audit_events VALUES ('a-legacy','Alex Morgan','case.created','case','c-legacy','2026-01-01T00:00:00Z','{}');
   `);
   migrateSqlite(db);
-  assert.deepEqual(db.prepare("SELECT version FROM schema_migrations ORDER BY version").all().map((row)=>row.version),[1,2,3,4,5]);
+  assert.deepEqual(db.prepare("SELECT version FROM schema_migrations ORDER BY version").all().map((row)=>row.version),[1,2,3,4,5,6]);
   assert.equal(db.prepare("SELECT human_disposition AS disposition,workflow_state AS state FROM review_cases WHERE id='c-legacy'").get().disposition,"CLEARED");
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM review_notes WHERE case_id='c-legacy'").get().count,1);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM human_determinations WHERE case_id='c-legacy'").get().count,1);
@@ -87,10 +87,10 @@ test("SQLite migrations fall back to a plain indexed search table when FTS5 is u
 
   migrateSqlite(db);
 
-  assert.deepEqual(applied, [2, 3, 4, 5]);
+  assert.deepEqual(applied, [2, 3, 4, 5, 6]);
   assert.equal(calls.filter((sql) => sql.includes("CREATE VIRTUAL TABLE entity_search")).length, 2);
   assert.equal(calls.filter((sql) => sql.includes("CREATE TABLE entity_search")).length, 2);
-  assert.equal(calls.filter((sql) => sql === "COMMIT").length, 4);
+  assert.equal(calls.filter((sql) => sql === "COMMIT").length, 5);
   assert.equal(calls.includes("ROLLBACK"), false);
 });
 
