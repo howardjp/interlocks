@@ -1,0 +1,35 @@
+export type WorkflowState = "GREEN" | "YELLOW" | "RED";
+export type ViewName = "dashboard" | "checks" | "review" | "ledger" | "knowledge" | "portfolio" | "associated" | "data" | "audit" | "admin" | "settings";
+export type Theme = "light" | "dark";
+
+export type Actor = { accountId:string; personId:string; email:string; accountStatus:string; platformRole:string; name:string; title:string; memberships:Array<{id:string;workspaceId:string;workspaceName:string;status:string;roles:string[]}> };
+export type CaseItem = { id:string;reference:string;title:string;summary:string;workflowState:WorkflowState;humanDisposition:string;status:string;personId:string|null;personName:string|null;matterId:string|null;matterCode:string|null;matterTitle:string|null;entityId:string|null;entityName:string|null;assignedAccountId:string|null;assigneeName:string|null;openedAt:string;reviewDueAt:string|null;closedAt:string|null;updatedAt:string };
+export type Entity = { id:string;kind:string;canonicalName:string;jurisdiction:string|null;status:string;aliases:string[] };
+export type Matter = { id:string;code:string;title:string;matterType:string;stage:string;status:string;representationStatus:string;sensitivity:string;openedAt:string;ownerName:string|null;partyCount:number };
+export type Relationship = { id:string;personId:string;personName:string;entityId:string;entityName:string;relationshipType:string;representationStatus:string|null;description:string;effectiveFrom:string|null;effectiveTo:string|null;source:string;disclosureClass:string;status:string;recordedAt:string };
+export type Control = { id:string;caseId:string;caseReference:string;controlType:string;description:string;ownerPersonId:string;ownerName:string;mandatory:boolean;dueAt:string|null;status:string;completedAt:string|null };
+export type Check = { id:string;reference:string;matterId:string|null;status:string;workflowState:WorkflowState;executedAt:string;corpusRevision:number;reReviewSuggested:boolean;hitCount:number };
+export type Hit = { id:string;conflictCheckId:string;subjectId:string;matchedEntityId:string;matchedEntityName:string;sourceResourceType:string;sourceResourceId:string;matchConfidence:string;workflowState:WorkflowState;explanation:{reasons:string[];source:string;statement:string};reviewStatus:string;createdAt:string };
+export type Note = { id:string;caseId:string;author:string;body:string;noteType:string;createdAt:string };
+export type Determination = { id:string;caseId:string;disposition:string;rationale:string;ruleBasis:string|null;jurisdiction:string|null;determinedBy:string;determinedAt:string;supersedesId:string|null };
+export type Consent = { id:string;caseId:string;affectedEntityId:string|null;affectedEntityName:string|null;consentType:string;ruleBasis:string|null;jurisdiction:string|null;status:string;evidenceRequirement:string|null;scope:string;conditions:string|null;obtainedAt:string|null;effectiveFrom:string|null;expiresAt:string|null;createdAt:string };
+export type Screen = { id:string;caseId:string;screenedPersonId:string;screenedPersonName:string;matterId:string;matterCode:string;effectiveAt:string;restrictions:string;feeRestrictions:string|null;communicationsRestrictions:string|null;noticeRequirements:string|null;noticeRecipients:string|null;status:string;createdAt:string };
+export type Assertion = { id:string;subjectType:string;subjectId:string;predicate:string;objectType:string|null;objectId:string|null;objectText:string|null;status:string;confidentialityScope:string;provenance:string|null;recordedAt:string;effectiveFrom:string|null;effectiveTo:string|null;supersedesId:string|null };
+export type Inference = { id:string;subjectType:string;subjectId:string;inferenceType:string;conclusion:string;matchConfidence:string|null;evidenceSummary:string;corpusRevision:number;recordedAt:string;supersedesId:string|null;superseded:boolean };
+export type DocumentRecord = { id:string;filename:string;mediaType:string;size:number;sha256:string;uploadedAt:string;description:string|null;confidentialityScope:string;status:string;supersedesDocumentId:string|null;uploadedBy:string;attachmentCount:number;evidenceLinkCount:number };
+export type Membership = { id:string;accountId:string|null;personId:string;personName:string;email:string|null;status:string;invitedAt:string|null;joinedAt:string|null;departedAt:string|null;roles:string[] };
+export type Invitation = { id:string;email:string;roles:string[];invitedAt:string;expiresAt:string;status:string };
+export type LedgerEntry = { id:string;personId:string;entityName:string;context:string;involvement:string|null;sourceWorkspaceId:string|null;source:string;provenance:string|null;disclosureClass:string;sharingAuthorized:boolean;recordedAt:string };
+export type AuditEvent = { id:string;actorAccountId:string|null;actorName:string|null;authorityUsed:string;workspaceScope:string|null;action:string;resourceType:string;resourceId:string;before:Record<string,unknown>|null;after:Record<string,unknown>|null;occurredAt:string;reason:string|null;metadata:Record<string,unknown> };
+export type AssociatedRequest = { id:string;subjectPersonId:string;subjectPersonName:string;associatedEntityId:string;associatedEntityName:string;queryEntityId:string;queryEntityName:string;question:string;disclosureScope:string;status:string;requestedAt:string;expiresAt:string|null };
+export type AssociatedResponse = { id:string;requestId:string;response:string;permittedDetail:string|null;respondedAt:string };
+
+export type Snapshot = {
+  generatedAt:string;corpusRevision:number;actor:Actor;realActor:Actor;viewAs:{superadminAccountId:string;accountId:string;name:string;readOnly:boolean}|null;
+  availableWorkspaces:Array<{workspaceId:string;workspaceName:string;status:string;roles:string[]}>;workspace:{id:string;name:string;status:string;registrationMode:string;settings:Record<string,unknown>}|null;
+  stats:{openCases:number;red:number;yellow:number;green:number;openControls:number;currentBillableSeats:number};
+  entities:Entity[];matters:Matter[];relationships:Relationship[];cases:CaseItem[];checks:Check[];hits:Hit[];controls:Control[];notes:Note[];determinations:Determination[];consents:Consent[];screens:Screen[];assertions:Assertion[];inferences:Inference[];documents:DocumentRecord[];memberships:Membership[];invitations:Invitation[];associatedRequests:AssociatedRequest[];associatedResponses:AssociatedResponse[];audit:AuditEvent[];ledger:LedgerEntry[];
+  migrations:Array<{version:number;name:string;appliedAt:string}>;configuration:{environment:string;registrationMode:string;demoMode:boolean;authProvider:string;databaseDriver:string;objectStoreDriver:string};
+};
+
+export type Command = (command:string,input?:Record<string,unknown>,resourceId?:string)=>Promise<unknown>;
