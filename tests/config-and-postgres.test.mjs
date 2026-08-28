@@ -52,3 +52,20 @@ test("a legacy scored prototype migrates without losing records or carrying arit
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM pragma_table_info('review_cases') WHERE lower(name) LIKE '%score%'").get().count,0);
   db.close();
 });
+
+test("SQLite migration failure rolls back the active migration", () => {
+  const calls = [];
+  const db = {
+    exec(sql) {
+      calls.push(sql);
+      if (sql.includes("CREATE TABLE system_state")) throw new Error("schema failure");
+    },
+    prepare(sql) {
+      if (sql === "SELECT version FROM schema_migrations") return { all: () => [] };
+      if (sql === "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?") return { get: () => undefined };
+      throw new Error(`Unexpected SQL: ${sql}`);
+    },
+  };
+  assert.throws(() => migrateSqlite(db), /schema failure/);
+  assert.equal(calls.at(-1), "ROLLBACK");
+});
