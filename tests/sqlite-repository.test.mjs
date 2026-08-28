@@ -8,7 +8,7 @@ function repository() { return new SqliteInterlocksRepository(":memory:", { obje
 
 test("versioned migrations create a connected person-first workspace without numeric triage", (t) => {
   const repo = repository(); t.after(() => repo.close()); const snapshot = repo.getSnapshot();
-  assert.deepEqual(repo.migrationState().map((item) => item.version), [1, 2, 3, 4]);
+  assert.deepEqual(repo.migrationState().map((item) => item.version), [1, 2, 3, 4, 5]);
   assert.equal(snapshot.workspace.id, "ws-northstar");
   assert.equal(snapshot.memberships.length, 6);
   assert.equal(snapshot.cases.length, 5);

@@ -555,7 +555,7 @@ test("health identifies SQLite, current schema, corpus, and time", (t) => {
   const health = open(t).health();
   assert.equal(health.status, "ok");
   assert.equal(health.database, "sqlite");
-  assert.equal(health.schemaVersion, 4);
+  assert.equal(health.schemaVersion, 5);
   assert.ok(Number.isInteger(health.corpusRevision));
   assert.ok(Number.isFinite(Date.parse(health.timestamp)));
 });

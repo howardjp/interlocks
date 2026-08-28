@@ -171,10 +171,10 @@ test("PostgreSQL migration runs every unapplied migration transactionally", asyn
 });
 
 test("PostgreSQL migration does not reapply recorded versions", async () => {
-  const harness = postgresHarness({ applied: [1] });
+  const harness = postgresHarness({ applied: postgresMigrations.map((migration) => migration.version) });
   const repository = new PostgresInterlocksRepository("postgresql://example/interlocks", { pool: harness.pool });
   await repository.migrate();
-  assert.equal(harness.calls.some((call) => call.sql === postgresMigrations[0].sql), false);
+  assert.equal(harness.calls.some((call) => postgresMigrations.some((migration) => call.sql === migration.sql)), false);
   assert.equal(harness.calls.some((call) => call.sql.startsWith("INSERT INTO schema_migrations")), false);
   assert.equal(harness.calls.at(-1).sql, "COMMIT");
 });
