@@ -46,7 +46,7 @@ try {
 
   await page.goto(base, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "What needs attention", exact: true }).waitFor();
-  equal(await page.title(), "Interlocks — Institutional ethics operations", "document title");
+  equal(await page.title(), "Interlocks — Conflicts, clearly managed", "document title");
   equal(await page.locator("img[src='/interlocks-icon.svg']").first().getAttribute("src"), "/interlocks-icon.svg", "authoritative mark renders");
 
   const themeButton = page.getByRole("button", { name: "Use dark mode" });

@@ -69,3 +69,46 @@ test("SQLite migration failure rolls back the active migration", () => {
   assert.throws(() => migrateSqlite(db), /schema failure/);
   assert.equal(calls.at(-1), "ROLLBACK");
 });
+
+test("SQLite migrations fall back to a plain indexed search table when FTS5 is unavailable", () => {
+  const calls = [];
+  const applied = [];
+  const db = {
+    exec(sql) {
+      calls.push(sql);
+      if (sql.includes("CREATE VIRTUAL TABLE entity_search")) throw new Error("no such module: fts5");
+    },
+    prepare(sql) {
+      if (sql === "SELECT version FROM schema_migrations") return { all: () => [{ version: 1 }] };
+      if (sql.startsWith("INSERT INTO schema_migrations")) return { run: (version) => applied.push(version) };
+      throw new Error(`Unexpected SQL: ${sql}`);
+    },
+  };
+
+  migrateSqlite(db);
+
+  assert.deepEqual(applied, [2, 3, 4]);
+  assert.equal(calls.filter((sql) => sql.includes("CREATE VIRTUAL TABLE entity_search")).length, 2);
+  assert.equal(calls.filter((sql) => sql.includes("CREATE TABLE entity_search")).length, 2);
+  assert.equal(calls.filter((sql) => sql === "COMMIT").length, 3);
+  assert.equal(calls.includes("ROLLBACK"), false);
+});
+
+test("SQLite search migration does not hide errors unrelated to unavailable FTS5", () => {
+  const calls = [];
+  const db = {
+    exec(sql) {
+      calls.push(sql);
+      if (sql.includes("CREATE VIRTUAL TABLE entity_search")) throw new Error("database disk image is malformed");
+    },
+    prepare(sql) {
+      if (sql === "SELECT version FROM schema_migrations") return { all: () => [{ version: 1 }] };
+      if (sql.startsWith("INSERT INTO schema_migrations")) return { run: () => {} };
+      throw new Error(`Unexpected SQL: ${sql}`);
+    },
+  };
+
+  assert.throws(() => migrateSqlite(db), /disk image is malformed/);
+  assert.equal(calls.at(-1), "ROLLBACK");
+  assert.equal(calls.some((sql) => sql.includes("CREATE TABLE entity_search")), false);
+});

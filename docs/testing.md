@@ -16,7 +16,7 @@ CI runs `npm run test:all`, installs the pinned Playwright Chromium build, and t
 
 ## Current assurance inventory
 
-The Node test runner executes 457 named tests. The production HTTP suite adds 101 assertions against a real Next.js production server. The browser suite adds a complete interaction journey with 21 explicit assertions plus locator and state-transition checks that fail on missing or inaccessible UI.
+The Node test runner executes 459 named tests. The production HTTP suite adds 101 assertions against a real Next.js production server. The browser suite adds a complete interaction journey with 21 explicit assertions plus locator and state-transition checks that fail on missing or inaccessible UI.
 
 The enforced core-library coverage floors are:
 
