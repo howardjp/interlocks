@@ -6,11 +6,12 @@ Interlocks treats tests as executable product policy. The suite checks not only 
 
 | Gate | Command | What it proves |
 | --- | --- | --- |
+| Dependency audit | `npm run audit` | The locked dependency graph contains no known high- or critical-severity advisories |
 | Core suite and coverage | `npm run test:coverage` | Domain logic, authorization, identity, configuration, SQLite, PostgreSQL adapter behavior, migrations, object storage, source-level UI and API contracts |
 | Production HTTP | `npm run test:http` | A built server, security headers, identity failures, tenant isolation, commands, persistence, audit, exports, and reset through real HTTP routes |
 | Browser E2E | `npm run test:browser` | Rendered React behavior, keyboard dialogs, dark-mode persistence, disclosure, checks, review notes, document upload, CSV import, navigation, mobile behavior, and runtime errors |
 | Artifact validation | `npm run validate:artifact` | Required production routes and assets exist in the built output |
-| Complete non-browser gate | `npm run test:all` | Lint, enforced coverage, production build, HTTP suite, and artifact validation |
+| Complete non-browser gate | `npm run test:all` | Dependency audit, lint, enforced coverage, production build, HTTP suite, and artifact validation |
 
 CI runs `npm run test:all`, installs the pinned Playwright Chromium build, and then runs `npm run test:browser`.
 
@@ -24,7 +25,7 @@ The enforced core-library coverage floors are:
 - Branches: 88%
 - Functions: 98%
 
-The suite currently measures 99.93% lines, 89.20% branches, and 98.26% functions. Coverage floors are deliberately committed in `package.json`; a regression fails locally and in CI.
+The suite currently measures 99.94% lines, 89.44% branches, and 98.84% functions. Coverage floors are deliberately committed in `package.json`; a regression fails locally and in CI.
 
 ## Assurance matrix
 
