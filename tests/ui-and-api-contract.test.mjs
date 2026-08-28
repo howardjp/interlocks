@@ -237,6 +237,7 @@ test("responsive stylesheet contains desktop, tablet, and mobile adaptations", (
   assert.match(files.styles, /@media\(max-width:1200px\)/);
   assert.match(files.styles, /@media\(max-width:900px\)/);
   assert.match(files.styles, /@media\(max-width:580px\)/);
+  assert.match(files.styles, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 });
 
 test("keyboard focus is visibly styled", () => {

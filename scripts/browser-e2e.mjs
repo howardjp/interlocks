@@ -139,7 +139,12 @@ try {
   check(await page.locator(".sidebar").evaluate((element) => element.classList.contains("mobile-open")), "mobile navigation opens");
   await page.getByRole("button", { name: "Close navigation" }).click();
   check(!(await page.locator(".sidebar").evaluate((element) => element.classList.contains("mobile-open"))), "mobile navigation closes");
-  check(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), "mobile page has no horizontal overflow");
+  const mobileOverflow = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    offenders: [...document.querySelectorAll("body *")].filter((element) => element.getBoundingClientRect().right > document.documentElement.clientWidth + 1).slice(0, 8).map((element) => ({ tag: element.tagName, className: String(element.className), right: Math.round(element.getBoundingClientRect().right), width: Math.round(element.getBoundingClientRect().width) })),
+  }));
+  check(mobileOverflow.scrollWidth <= mobileOverflow.clientWidth, `mobile page has no horizontal overflow: ${JSON.stringify(mobileOverflow)}`);
 
   equal(runtimeErrors.length, 0, runtimeErrors.join("\n") || "no browser runtime errors");
   console.log(`Browser E2E passed with ${assertions} assertions: rendering, accessibility, themes, disclosure, checks, review, upload, imports, navigation, and responsive layout.`);
