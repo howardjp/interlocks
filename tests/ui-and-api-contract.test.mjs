@@ -62,7 +62,8 @@ for (const command of [
 
 for (const aggregate of [
   "entities", "matters", "relationships", "cases", "checks", "hits", "controls", "notes", "determinations",
-  "consents", "screens", "assertions", "inferences", "documents", "memberships", "invitations",
+  "consents", "screens", "assertions", "inferences", "policyPacks", "policyQuestions", "policySelections",
+  "policyEvaluations", "policyRuleResults", "documents", "memberships", "invitations",
   "associatedRequests", "associatedResponses", "audit", "ledger",
 ]) {
   test(`snapshot UI type includes ${aggregate}`, () => {
@@ -79,6 +80,33 @@ test("traffic-light language describes action rather than ethical certainty", ()
   assert.match(files.primitives, /YELLOW:"Human review required"/);
   assert.match(files.primitives, /RED:"Do not proceed"/);
   assert.doesNotMatch(allUi, /No conflict exists/i);
+});
+
+test("the check UI exposes question-level authority selection", () => {
+  assert.match(files.checks, /Choose authority independently/);
+  assert.match(files.checks, /CONTROLLING/);
+  assert.match(files.checks, /POTENTIALLY_APPLICABLE/);
+  assert.match(files.checks, /COMPARATIVE_ONLY/);
+  assert.match(files.checks, /Add another policy question/);
+  assert.match(files.checks, /disabled=\{pack\.id==="aba-model"\}/);
+});
+
+test("the check UI captures Chancery facts without inventing answers", () => {
+  for (const marker of ["Chancery Rule 170 facts", "Delaware counsel confirmed?", "Outside counsel appearing?", "Pro hac vice status", "UNKNOWN"]) assert.ok(files.checks.includes(marker));
+});
+
+test("policy results expose version, authority posture, citation, and source", () => {
+  assert.match(files.checks, /selection\.authorityStatus/);
+  assert.match(files.checks, /finding\.packVersion/);
+  assert.match(files.checks, /href=\{finding\.sourceUrl\}/);
+  assert.match(files.checks, /finding\.unknownQuestions/);
+});
+
+test("the knowledge surface inventories installed policy packs", () => {
+  assert.match(files.checks, /Installed legal authority packs/);
+  assert.match(files.checks, /pack\.contentHash\.slice/);
+  assert.match(files.checks, /pack\.effectiveFrom/);
+  assert.match(files.checks, /href=\{pack\.sourceUrl\}/);
 });
 
 test("traffic lights always expose their state as visible text", () => {
@@ -199,7 +227,7 @@ test("screen form warns that a screen is not a machine cure", () => {
 });
 
 test("conflict-check result explicitly disclaims a legal conclusion", () => {
-  assert.match(files.checks, /A hit is a review signal, not an ethical conclusion/);
+  assert.match(files.checks, /not machine-made legal conclusions/);
 });
 
 test("portable ledger explains the tenant boundary on departure", () => {

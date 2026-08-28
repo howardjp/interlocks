@@ -73,7 +73,7 @@ try {
   equal(healthResponse.headers.get("cache-control"), "no-store", "health is not cached");
   const health = await healthResponse.json();
   equal(health.status, "ok", "health status");
-  equal(health.schemaVersion, 4, "schema version");
+  equal(health.schemaVersion, 5, "schema version");
   equal(health.database, "sqlite", "test exercises SQLite boundary");
 
   let snapshotResponse = await request("/api/snapshot?workspace=ws-northstar", { headers: headers() });
@@ -83,6 +83,8 @@ try {
   check(snapshot.cases.every((item) => !("score" in item) && !("riskScore" in item)), "no numeric ethics score leaks");
   assert.deepEqual(new Set(snapshot.cases.map((item) => item.workflowState)), new Set(["RED", "YELLOW", "GREEN"])); assertions += 1;
   equal(snapshot.workspace.id, "ws-northstar", "workspace selected");
+  equal(snapshot.policyPacks.length, 6, "first-wave legal policy catalog installed");
+  check(snapshot.policyPacks.every((item) => item.version && item.contentHash && item.sourceUrl), "policy catalog is versioned and sourced");
   check(snapshot.availableWorkspaces.some((item) => item.workspaceId === "ws-blue-ridge"), "superadmin can enumerate workspaces");
 
   const wrongTenant = await json("/api/snapshot?workspace=ws-blue-ridge", { headers: headers("acct-daniel", "ws-blue-ridge") }, 403);
@@ -104,12 +106,21 @@ try {
       { name: "Solaris Dynamics", role: "RELATED_PARTY" },
       { name: "123 Main Street", role: "PROPERTY" },
     ],
+    questions: [{
+      key: "maryland-governing-law",
+      text: "Which Maryland professional duties require review?",
+      authorities: [{ packId: "maryland", status: "CONTROLLING" }],
+    }],
   })).result;
   equal(checkResult.workflowState, "YELLOW", "check requires human review");
   check(checkResult.hits.some((item) => item.matchConfidence === "EXACT"), "exact match surfaced");
   check(checkResult.hits.some((item) => item.matchConfidence === "RELATED"), "related match surfaced");
   check(checkResult.hits.every((item) => item.explanation.statement.includes("no legal conclusion")), "every hit carries legal disclaimer");
   check(checkResult.hits.every((item) => item.explanation.source), "every hit explains its source type");
+  equal(checkResult.policyQuestions.length, 1, "policy question evaluated");
+  equal(checkResult.policyQuestions[0].evaluations.length, 2, "controlling Maryland and comparative ABA evaluated independently");
+  check(checkResult.policyQuestions[0].evaluations.some((item) => item.packId === "maryland" && item.authorityStatus === "CONTROLLING"), "Maryland authority posture retained");
+  check(checkResult.policyQuestions[0].evaluations.some((item) => item.packId === "aba-model" && item.authorityStatus === "COMPARATIVE_ONLY"), "ABA remains the comparative baseline");
 
   const disclosure = (await command("disclosure.create", {
     personId: "p-jordan",
@@ -132,6 +143,8 @@ try {
   }, disclosure.id);
   snapshot = await json("/api/snapshot?workspace=ws-northstar", { headers: headers() });
   check(snapshot.hits.filter((item) => item.conflictCheckId === checkResult.id).every((item) => item.sourceResourceType && item.sourceResourceId), "persisted hits retain source provenance");
+  check(snapshot.policyQuestions.some((item) => item.conflictCheckId === checkResult.id), "policy question persisted");
+  check(snapshot.policyRuleResults.some((item) => item.packId === "maryland" && item.citation.startsWith("Maryland Rule")), "policy result retains exact jurisdictional citation");
   const created = snapshot.cases.find((item) => item.id === disclosure.id);
   equal(created.humanDisposition, "CLEARED", "determination recorded");
   check(created.workflowState !== "GREEN", "unmet control prevents green state");
@@ -225,8 +238,12 @@ try {
   equal(personal.schema, "interlocks.personal-ledger.v1", "personal ledger schema");
   check(personal.entries.every((item) => ["PORTABLE", "RESTRICTED"].includes(item.disclosure_class)), "personal export respects disclosure classes");
   const checkExport = await json(`/api/export?kind=check&resourceId=${checkResult.id}&workspace=ws-northstar`, { headers: headers() });
-  equal(checkExport.schema, "interlocks.conflict-check.v1", "conflict-check export schema");
+  equal(checkExport.schema, "interlocks.conflict-check.v2", "conflict-check export schema");
   check(checkExport.hits.length === checkResult.hits.length, "check export contains all hits");
+  equal(checkExport.policyQuestions.length, 1, "check export contains policy questions");
+  equal(checkExport.policySelections.length, 2, "check export contains authority selections");
+  equal(checkExport.policyEvaluations.length, 2, "check export contains immutable evaluations");
+  check(checkExport.policyRuleResults.length > 0, "check export contains traced rule results");
 
   const admin = await json("/api/admin", { headers: headers() });
   equal(admin.workspaces.length, 2, "admin sees both workspaces");
@@ -236,10 +253,12 @@ try {
   await command("demo.reset");
   const reset = await json("/api/snapshot?workspace=ws-northstar", { headers: headers() });
   equal(reset.cases.length, 5, "reset restores cases");
+  equal(reset.policyPacks.length, 6, "reset preserves installed policy catalog");
+  equal(reset.policyQuestions.length, 0, "reset removes demo policy evaluations");
   check(!reset.entities.some((item) => item.canonicalName === "HTTP Imported Entity"), "reset removes imported entity");
   check(!reset.documents.some((item) => item.filename === "http-evidence.txt"), "reset removes uploaded metadata");
 
-  console.log(`Production HTTP suite passed with ${assertions} assertions: security, identity, tenancy, authorization, checks, disclosure, judgment, controls, consent, screens, associated people, documents, imports, exports, administration, audit, and reset.`);
+  console.log(`Production HTTP suite passed with ${assertions} assertions: security, identity, tenancy, authorization, policy packs, question-level legal analysis, checks, disclosure, judgment, controls, consent, screens, associated people, documents, imports, exports, administration, audit, and reset.`);
 } finally {
   server.kill("SIGTERM");
   await new Promise((resolve) => server.once("exit", resolve));

@@ -24,6 +24,9 @@ Authorization is centralized in `lib/auth/authorization.mjs`; routes provide the
 | Assertion | Attributable recorded fact or claim | Superseded, never rewritten |
 | Inference | Point-in-time system conclusion from evidence | Immutable |
 | Conflict hit | Explainable deterministic match | Snapshot at a corpus revision |
+| Policy question | The legal question and selected authority posture | Immutable within its check |
+| Policy evaluation | Pack version, frozen facts, hash, trace, and result counts | Immutable |
+| Policy rule result | Match, nonmatch, or uncertainty with exact source citation | Immutable |
 | Workflow state | Required action: GREEN, YELLOW, RED | Derived from current operational facts |
 | Human determination | Professional disposition and rationale | New records supersede old records |
 | Consent / screen | Evidence-bearing legal workflow objects | Status history retained |
@@ -51,7 +54,17 @@ SQLite is the complete local adapter. PostgreSQL-native ordered migrations and c
 
 The portable object is the Person-owned professional ledger, subject to its disclosure class and sharing authorization. Workspace matters, client data, documents, notes, determinations, and private relationships remain with the originating tenant. Departure ends membership access and reduces the active seat count without deleting either side's permitted records.
 
-## Legal configuration
+## Jurisdictional policy boundary
 
-The legal model intentionally does not encode ABA rules as universal automated outcomes. Jurisdiction, effective date, rule/policy basis, evidence requirement, and reviewer rationale are explicit data. See `legal-ethics-audit.md` for the rule-by-rule audit and product consequences.
+The legal model does not encode ABA rules as universal automated outcomes. Each question selects one or more versioned packs as `CONTROLLING`, `POTENTIALLY_APPLICABLE`, or `COMPARATIVE_ONLY`. The ABA pack is permanent provisional/comparative infrastructure and cannot be marked controlling. Tribunal packs compose with licensing-jurisdiction packs; for example, selecting the Delaware Court of Chancery overlay also records Delaware professional-conduct rules as potentially applicable.
 
+```mermaid
+flowchart TD
+  Q["Legal question"] --> A["Authority selections"]
+  F["Frozen fact snapshot"] --> E["Declarative evaluator"]
+  A --> E
+  E --> R["Traced rule results"]
+  R --> H["Human review"]
+```
+
+Policy evaluation is side-effect-free and non-Turing-complete. It returns `MATCHED`, `NOT_MATCHED`, or `INDETERMINATE`; it never returns “conflict exists.” Exact pack snapshots, source URLs, citations, fact hashes, and traces make historical results reproducible even after later packs are installed. See `policy-engine.md` for the DSL and pack lifecycle, and `legal-ethics-audit.md` for the original ABA-model audit.

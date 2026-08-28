@@ -24,6 +24,8 @@ The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, ME
 - MEMBER, REVIEWER, FIRMADMIN, and audited platform SUPERADMIN authority are centrally enforced.
 - Disclosures, canonical entities, aliases, matters, parties, professional relationships, and portable ledger entries are persistent.
 - Deterministic EXACT, STRONG, POSSIBLE, and RELATED matches include human-readable evidence. There is no numeric conflict score.
+- A declarative Jurisdictional Policy Engine applies versioned ABA, Maryland, Virginia, D.C., Delaware, and Delaware Court of Chancery packs independently to each legal question.
+- ABA is retained as provisional first-blush authority when governing law is unresolved and as a comparative baseline when controlling authority is selected; it is never represented as controlling law.
 - GREEN, YELLOW, and RED mean required action; a separate human disposition records professional judgment.
 - Assertions, point-in-time inferences, immutable documents, many-to-many evidence links, consent, screens, determinations, controls, and audit events are first-class.
 - Associated-person questions are bounded by an explicit disclosure scope.
@@ -36,7 +38,7 @@ The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, ME
 npm run test:all
 ```
 
-This runs lint, domain and SQLite integration tests, the production build, a production HTTP workflow, and built-artifact validation.
+This runs more than 10,000 named domain, policy-conformance, and SQLite integration tests with enforced coverage, plus lint, the production build, a production HTTP workflow, and built-artifact validation.
 
 The separate browser journey requires Playwright Chromium:
 
@@ -58,6 +60,7 @@ The promotion is recorded as an immutable audit event.
 ## Documentation
 
 - [`docs/architecture.md`](docs/architecture.md) — security and domain boundaries.
+- [`docs/policy-engine.md`](docs/policy-engine.md) — policy DSL, jurisdiction composition, immutable evaluation records, and pack-authoring rules.
 - [`docs/legal-ethics-audit.md`](docs/legal-ethics-audit.md) — ABA-model legal ethics audit and product consequences.
 - [`docs/deployment.md`](docs/deployment.md) — production configuration and mechanical deployment checklist. No deployment has been performed.
 - [`docs/testing.md`](docs/testing.md) — exhaustive test layers, commands, coverage floors, and CI policy.

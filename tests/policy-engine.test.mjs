@@ -78,6 +78,14 @@ test("exists rejects non-array collections", () => { const candidate=minimalPack
 
 for (const status of AUTHORITY_STATUSES) test(`evaluation accepts authority status ${status}`, () => assert.equal(evaluatePolicyPack(minimalPack(),{flag:true},{authorityStatus:status}).authorityStatus,status));
 test("evaluation rejects unsupported authority status", () => assert.throws(()=>evaluatePolicyPack(minimalPack(),{flag:true},{authorityStatus:"DEFAULT"}),/Unsupported authority status/));
+test("evaluation rejects an operator smuggled past compilation", () => {
+  const candidate=minimalPack(); candidate.contentHash="precompiled"; candidate.rules[0].condition.predicate.operator="exec";
+  assert.throws(()=>evaluatePolicyPack(candidate,{flag:true}),/Unsupported policy operator/);
+});
+test("evaluation rejects an expression smuggled past compilation", () => {
+  const candidate=minimalPack(); candidate.contentHash="precompiled"; candidate.rules[0].condition={};
+  assert.throws(()=>evaluatePolicyPack(candidate,{flag:true}),/Unsupported policy expression/);
+});
 
 test("all first-wave packs compile independently with unique hashes", () => {
   assert.equal(LEGAL_POLICY_PACKS.length,6); assert.equal(new Set(LEGAL_POLICY_PACKS.map((item)=>item.id)).size,6); assert.equal(new Set(LEGAL_POLICY_PACKS.map((item)=>item.contentHash)).size,6);
@@ -94,4 +102,3 @@ test("model rules surface a material-limitation indicator without making a legal
   const result=evaluatePolicyPack(ABA_MODEL_PACK,{indicators:[{type:"FINANCIAL_INTEREST"}]}); const rule=result.results.find((item)=>item.ruleId==="aba.1.7-a-2");
   assert.equal(rule.outcome,"MATCHED"); assert.match(rule.finding.message,/may materially limit/i); assert.doesNotMatch(rule.finding.message,/conflict exists/i);
 });
-

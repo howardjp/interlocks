@@ -135,6 +135,20 @@ test("a check rejects more than twelve policy questions", (t) => {
   assert.throws(() => repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions })), /at most 12/);
 });
 
+for (const [label, context, pattern] of [
+  ["non-object context", [], /context must be an object/],
+  ["a derived-fact override", { indicators:[] }, /Unsupported policy context fact/],
+  ["a non-boolean counsel answer", { delawareCounselConfirmed:"probably" }, /must be a boolean/],
+  ["an unknown tribunal", { tribunal:"MARS_SUPREME_COURT" }, /Unsupported tribunal/],
+  ["an unknown pro hac vice status", { proHacViceStatus:"MAYBE" }, /Unsupported pro hac vice status/],
+]) {
+  test(`policy questions reject ${label} before evaluation`, (t) => {
+    const repository = open(t);
+    assert.throws(() => repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions:[question("delaware-chancery", "POTENTIALLY_APPLICABLE", { context })] })), pattern);
+    assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_questions").count, 0);
+  });
+}
+
 test("a check persists twelve independent questions and sixty model-rule results", (t) => {
   const repository = open(t);
   const questions = Array.from({ length:12 }, (_, index) => ({ key:`q-${index}`, text:`Question ${index}?`, authorities:[] }));
@@ -193,20 +207,20 @@ for (const [label, context, expectedState, expectedOutcome] of [
 
 test("comparative-only matches are stored but never drive workflow", (t) => {
   const repository = open(t);
-  const context = { indicators:[{ type:"FINANCIAL_INTEREST", detail:"Comparison fixture" }] };
-  const created = repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions:[question("aba-model", "COMPARATIVE_ONLY", { context })] }));
+  const context = { delawareCounselConfirmed:false, outsideCounselPresent:false };
+  const created = repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions:[question("delaware-chancery", "COMPARATIVE_ONLY", { context })] }));
   const snapshot = repository.getSnapshot("acct-liam", "ws-northstar");
   assert.equal(created.workflowState, "GREEN");
   assert.equal(snapshot.cases.filter((item) => item.id === created.id).length, 0);
-  assert.equal(snapshot.policyRuleResults.find((item) => item.ruleId === "aba.1.7-a-2").outcome, "MATCHED");
+  assert.equal(snapshot.policyRuleResults.find((item) => item.ruleId === "de-chancery.170.delaware-counsel").outcome, "MATCHED");
   assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM review_cases WHERE conflict_check_id=?", created.id).count, 0);
 });
 
 for (const status of ["CONTROLLING", "POTENTIALLY_APPLICABLE"]) {
   test(`${status.toLowerCase()} matches create a review workflow`, (t) => {
     const repository = open(t);
-    const context = { indicators:[{ type:"FINANCIAL_INTEREST", detail:"Policy fixture" }] };
-    const created = repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions:[question("maryland", status, { context })] }));
+    const context = { delawareCounselConfirmed:false, outsideCounselPresent:false };
+    const created = repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions:[question("delaware-chancery", status, { context })] }));
     assert.equal(created.workflowState, "YELLOW");
     assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM review_cases WHERE conflict_check_id=?", created.id).count, 1);
   });
@@ -214,7 +228,7 @@ for (const status of ["CONTROLLING", "POTENTIALLY_APPLICABLE"]) {
 
 test("D.C. results retain exact source, citation, and effective version", (t) => {
   const repository = open(t);
-  const created = repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions:[question("district-of-columbia", "CONTROLLING", { context:{ indicators:[{ type:"CURRENT_CLIENT_ADVERSITY" }] } })] }));
+  const created = repository.createConflictCheck("acct-liam", "ws-northstar", { subjects:[{ name:"Easton University", role:"ADVERSE_PARTY" }], matterId:"m-helios", questions:[question("district-of-columbia", "CONTROLLING")] });
   const snapshot = repository.getSnapshot("acct-liam", "ws-northstar");
   const result = snapshot.policyRuleResults.find((item) => item.packId === "district-of-columbia" && item.ruleId === "dc.1.7-a-b");
   const evaluation = snapshot.policyEvaluations.find((item) => item.id === result.evaluationId);
@@ -257,7 +271,7 @@ test("caller-owned check input remains untouched", (t) => {
 
 test("evaluation summaries reconcile exactly to stored rule results", (t) => {
   const repository = open(t);
-  repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions:[question("maryland", "CONTROLLING", { context:{ indicators:[{ type:"FINANCIAL_INTEREST" }] } })] }));
+  repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions:[question("delaware-chancery", "CONTROLLING", { context:{ delawareCounselConfirmed:false, outsideCounselPresent:false } })] }));
   const snapshot = repository.getSnapshot("acct-liam", "ws-northstar");
   for (const evaluation of snapshot.policyEvaluations) {
     const results = snapshot.policyRuleResults.filter((item) => item.evaluationId === evaluation.id);
@@ -340,4 +354,3 @@ test("demo reset clears evaluations but preserves the installed policy catalog",
   assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_evaluations").count, 0);
   assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_rule_results").count, 0);
 });
-
