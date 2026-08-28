@@ -45,7 +45,7 @@ try {
   page.on("response", (response) => { if (response.status() >= 500) runtimeErrors.push(`http ${response.status()}: ${response.url()}`); });
 
   await page.goto(base, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "What needs attention", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "What needs attention", exact: true, level: 1 }).waitFor();
   equal(await page.title(), "Interlocks — Conflicts, clearly managed", "document title");
   equal(await page.locator("img[src='/interlocks-icon.svg']").first().getAttribute("src"), "/interlocks-icon.svg", "authoritative mark renders");
 
@@ -81,7 +81,7 @@ try {
   await page.getByRole("status").waitFor();
 
   await page.getByRole("button", { name: "Conflict checks", exact: true }).click();
-  await page.getByRole("heading", { name: "Check before acting", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Check before acting", exact: true, level: 1 }).waitFor();
   await page.getByRole("button", { name: "New check" }).click();
   const checkDialog = page.getByRole("dialog", { name: "Run a conflict check" });
   await checkDialog.locator("select[name='matterId']").selectOption("m-aster");
@@ -92,7 +92,7 @@ try {
   check((await page.locator(".hit-card").first().innerText()).includes("no legal conclusion"), "hit disclaims legal conclusion");
 
   await page.getByRole("button", { name: "Review queue", exact: true }).click();
-  await page.getByRole("heading", { name: "Review queue", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Review queue", exact: true, level: 1 }).waitFor();
   await page.getByLabel("Search cases").fill("Browser regression relationship");
   equal(await page.locator(".case-record").count(), 1, "created disclosure appears in review queue");
   await page.locator(".case-record").click();
@@ -126,7 +126,7 @@ try {
     ["Audit trail", "Audit trail"], ["Settings", "People, roles, and policy"], ["Platform admin", "Global administration"],
   ]) {
     await page.getByRole("button", { name: navigation, exact: true }).click();
-    await page.getByRole("heading", { name: heading, exact: true }).waitFor();
+    await page.getByRole("heading", { name: heading, exact: true, level: 1 }).waitFor();
     assertions += 1;
   }
 
