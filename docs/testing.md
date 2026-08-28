@@ -7,7 +7,7 @@ Interlocks treats tests as executable product policy. The suite checks not only 
 | Gate | Command | What it proves |
 | --- | --- | --- |
 | Dependency audit | `npm run audit` | The locked dependency graph contains no known high- or critical-severity advisories |
-| Core suite and coverage | `npm run test:coverage` | Domain logic, 10,000 policy metamorphic vectors, authorization, identity, configuration, SQLite, PostgreSQL adapter behavior, migrations, object storage, source-level UI and API contracts |
+| Core suite and coverage | `npm run test:coverage` | Domain logic, more than 12,000 policy metamorphic vectors, typed fact validation, jurisdiction differences, authorization, identity, configuration, SQLite, PostgreSQL adapter behavior, migrations, object storage, source-level UI and API contracts |
 | Production HTTP | `npm run test:http` | A built server, security headers, identity failures, tenant isolation, versioned policy evaluation, commands, persistence, audit, exports, and reset through real HTTP routes |
 | Browser E2E | `npm run test:browser` | Rendered React behavior, keyboard dialogs, dark-mode persistence, multi-question authority selection, Chancery facts, disclosure, review, upload, import, navigation, mobile behavior, and runtime errors |
 | Artifact validation | `npm run validate:artifact` | Required production routes and assets exist in the built output |
@@ -17,7 +17,7 @@ CI runs `npm run test:all`, installs the pinned Playwright Chromium build, and t
 
 ## Current assurance inventory
 
-The Node test runner executes 10,563 named tests. Ten thousand are generated metamorphic policy-conformance cases spanning every first-wave model/licensing pack and rule, every authority posture, absent evidence, duplicate evidence, reordered evidence, and bounded irrelevant facts. The remaining tests cover targeted logic, persistence, UI/API contracts, transactions, identity, authorization, and infrastructure. The production HTTP suite adds 115 assertions against a real Next.js production server. The browser suite adds a complete interaction journey with 26 explicit assertions plus locator and state-transition checks that fail on missing or inaccessible UI.
+The Node test runner currently executes 13,590 named tests. More than 12,000 are generated metamorphic policy-conformance cases spanning every first-wave model/licensing pack and rule, every authority posture, missing required facts, key reordering, and bounded irrelevant facts. Per-rule declared-fact tests, per-fact type acceptance/rejection tests, and targeted local-rule-difference tests make the large count auditable instead of decorative. The remaining tests cover logic, persistence, UI/API contracts, transactions, identity, authorization, and infrastructure. The production HTTP suite adds 115 assertions against a real Next.js production server. The browser suite adds a complete interaction journey with explicit assertions plus locator and state-transition checks that fail on missing or inaccessible UI.
 
 The enforced core-library coverage floors are:
 
@@ -33,8 +33,8 @@ The coverage result is recorded during the release gate rather than treated as a
 | --- | --- |
 | Workflow logic | Every valid and invalid state/disposition; precedence among holds, mandatory requirements, findings, consent, screens, and human judgment |
 | Policy DSL | Schema rejection, every operator, three-valued truth tables, nesting limits, traces, missing facts, unknown questions, stable serialization, and exact hashes |
-| Policy packs | Unique versions and hashes; permanent ABA fallback; question-level authority posture; Delaware/Chancery composition; source and citation retention |
-| Policy conformance | 10,000 named metamorphic vectors proving rule results survive irrelevant facts, evidence order, duplicate evidence, and authority-status changes |
+| Policy packs | Conflict-clearance-only scope; unique versions and hashes; permanent ABA fallback; question-level authority posture; typed facts; jurisdiction-specific consent/screening behavior; Delaware/Chancery composition; source and citation retention |
+| Policy conformance | More than 12,000 named metamorphic vectors proving every rule’s match, nonmatch, and missing-fact behavior survives irrelevant facts, key order, and authority-status changes |
 | Entity matching | Canonical names, aliases, diacritics, corporate suffixes, human names, identifiers, addresses, related entities, nonmatches, and explainable reasons |
 | Authorization | Every role/action pair; inactive accounts and memberships; workspace boundaries; personal-ledger ownership; explicit SUPERADMIN authority |
 | Identity and configuration | Header/cookie development identity, WorkOS mapping, request resolution, production fail-closed invariants, secure environment requirements |

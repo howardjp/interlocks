@@ -24,7 +24,8 @@ The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, ME
 - MEMBER, REVIEWER, FIRMADMIN, and audited platform SUPERADMIN authority are centrally enforced.
 - Disclosures, canonical entities, aliases, matters, parties, professional relationships, and portable ledger entries are persistent.
 - Deterministic EXACT, STRONG, POSSIBLE, and RELATED matches include human-readable evidence. There is no numeric conflict score.
-- A declarative Jurisdictional Policy Engine applies versioned ABA, Maryland, Virginia, D.C., Delaware, and Delaware Court of Chancery packs independently to each legal question.
+- A declarative Jurisdictional Policy Engine applies versioned ABA, Maryland, Virginia, D.C., Delaware, and Delaware Court of Chancery packs independently to each legal question. The five model/licensing packs each contain 45 conflict-clearance checks; the Chancery overlay adds three Rule 170 admission checks.
+- The policy interface is generated from 106 typed conflict facts and exposes missing facts without inventing answers. It is explicitly scoped to conflict clearance—not complete professional responsibility—and every first-wave pack remains marked for lawyer validation.
 - ABA is retained as provisional first-blush authority when governing law is unresolved and as a comparative baseline when controlling authority is selected; it is never represented as controlling law.
 - GREEN, YELLOW, and RED mean required action; a separate human disposition records professional judgment.
 - Assertions, point-in-time inferences, immutable documents, many-to-many evidence links, consent, screens, determinations, controls, and audit events are first-class.
@@ -38,7 +39,7 @@ The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, ME
 npm run test:all
 ```
 
-This runs more than 10,000 named domain, policy-conformance, and SQLite integration tests with enforced coverage, plus lint, the production build, a production HTTP workflow, and built-artifact validation.
+This runs more than 13,000 named domain, typed-fact, jurisdiction-difference, policy-conformance, and SQLite integration tests with enforced coverage, plus lint, the production build, a production HTTP workflow, and built-artifact validation.
 
 The separate browser journey requires Playwright Chromium:
 

@@ -2,6 +2,8 @@
 
 Status: MVP baseline, 28 August 2026
 
+Scope note: this document records the broader ethics and security analysis that shaped the product architecture. The executable Jurisdictional Policy Engine is narrower: it covers conflict clearance only. Competence, technology, cybersecurity, supervision, fees, trust accounting, candor, advertising, and the rest of professional responsibility are not represented as executable jurisdiction packs.
+
 This audit tests the Interlocks domain against the American Bar Association Model Rules of Professional Conduct. The Model Rules are an ontology and design baseline, not a declaration of controlling law. Every operational determination must identify the applicable jurisdiction, the locally adopted rule or policy, and the human reviewer who applied it. The ABA publishes [jurisdictional comparison charts](https://www.americanbar.org/groups/professional_responsibility/policy/rule_charts/) precisely because adoption varies.
 
 Interlocks is a system of record and workflow. It may find candidate identities, relationships, missing evidence, and changed facts. It may not decide whether a conflict exists, whether matters are substantially related, whether information is material, whether a conflict is consentable, whether consent is sufficient, or whether a screen is effective.
