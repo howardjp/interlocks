@@ -101,7 +101,7 @@ try {
   check((await page.locator(".hit-card").count()) > 0, "check renders explainable hits");
   check((await page.locator(".hit-card").first().innerText()).includes("no legal conclusion"), "hit disclaims legal conclusion");
   equal(await page.locator(".policy-question-result").count(), 2, "question-level policy results render independently");
-  check((await page.getByText("Maryland Rule 19-301.18", { exact: true }).count()) > 0, "Maryland citation renders");
+  check((await page.getByRole("link", { name:/^Maryland Rule 19-301\.18/ }).count()) > 0, "Maryland citation renders");
   check((await page.getByText("Confirm responsible Delaware counsel for the Court of Chancery matter.", { exact: true }).count()) > 0, "Chancery finding renders");
 
   await page.getByRole("button", { name: "Review queue", exact: true }).click();
