@@ -92,15 +92,15 @@ try {
   const chanceryQuestion = checkDialog.locator(".question-editor").nth(1);
   await chanceryQuestion.locator("textarea").fill("What Chancery appearance requirements apply?");
   await chanceryQuestion.getByLabel("Delaware Court of Chancery authority status").selectOption("POTENTIALLY_APPLICABLE");
-  await chanceryQuestion.getByLabel("Delaware counsel confirmed?").selectOption("NO");
-  await chanceryQuestion.getByLabel("Outside counsel appearing?").selectOption("NO");
+  await chanceryQuestion.getByLabel("Has responsible Delaware counsel been confirmed?").selectOption("NO");
+  await chanceryQuestion.getByLabel("Will a lawyer not admitted in Delaware appear?").selectOption("NO");
   await checkDialog.getByRole("button", { name: "Run analysis" }).click();
   await checkDialog.waitFor({ state: "detached" });
   check((await page.locator(".hit-card").count()) > 0, "check renders explainable hits");
   check((await page.locator(".hit-card").first().innerText()).includes("no legal conclusion"), "hit disclaims legal conclusion");
   equal(await page.locator(".policy-question-result").count(), 2, "question-level policy results render independently");
   check((await page.getByText("Maryland Rule 19-301.18", { exact: true }).count()) > 0, "Maryland citation renders");
-  check((await page.getByText("Confirm Delaware counsel and the allocation of Rule 170 responsibilities.", { exact: true }).count()) > 0, "Chancery finding renders");
+  check((await page.getByText("Confirm responsible Delaware counsel for the Court of Chancery matter.", { exact: true }).count()) > 0, "Chancery finding renders");
 
   await page.getByRole("button", { name: "Review queue", exact: true }).click();
   await page.getByRole("heading", { name: "Review queue", exact: true, level: 1 }).waitFor();
@@ -117,6 +117,9 @@ try {
   await page.getByRole("button", { name: "Knowledge", exact: true }).click();
   await page.getByRole("heading", { name: "Installed legal authority packs", exact: true }).waitFor();
   equal(await page.locator(".policy-pack").count(), 6, "all first-wave legal policy packs render");
+  equal(await page.getByText("Review validation pending", { exact: true }).count(), 6, "every pack visibly carries its validation status");
+  equal(await page.getByText("45 clearance checks", { exact: true }).count(), 5, "every model and licensing pack exposes its clearance count");
+  equal(await page.getByText("3 clearance checks", { exact: true }).count(), 1, "the Chancery overlay exposes its clearance count");
   await page.getByRole("button", { name: "Upload" }).click();
   const upload = page.getByRole("dialog", { name: "Upload immutable document" });
   await upload.locator("input[type='file']").setInputFiles({ name: "browser-evidence.txt", mimeType: "text/plain", buffer: Buffer.from("immutable browser evidence") });

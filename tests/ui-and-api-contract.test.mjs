@@ -24,6 +24,7 @@ const files = {
   snapshotRoute: await source("../app/api/snapshot/route.js"),
   healthRoute: await source("../app/api/health/route.js"),
   nextConfig: await source("../next.config.ts"),
+  policySchema: await source("../lib/policy/legal-conflicts-schema.mjs"),
 };
 
 const allUi = [files.app, files.primitives, files.review, files.checks, files.ledger, files.portfolio, files.data, files.admin, files.invitation].join("\n");
@@ -91,8 +92,9 @@ test("the check UI exposes question-level authority selection", () => {
   assert.match(files.checks, /disabled=\{pack\.id==="aba-model"\}/);
 });
 
-test("the check UI captures Chancery facts without inventing answers", () => {
-  for (const marker of ["Chancery Rule 170 facts", "Delaware counsel confirmed?", "Outside counsel appearing?", "Pro hac vice status", "UNKNOWN"]) assert.ok(files.checks.includes(marker));
+test("the check UI renders pack-defined conflict facts without inventing answers", () => {
+  for (const marker of ["Conflict-clearance facts", "Unknown / not answered", "pack.manifest.factDefinitions"]) assert.ok(files.checks.includes(marker));
+  for (const marker of ["Has responsible Delaware counsel been confirmed?", "Will a lawyer not admitted in Delaware appear?", "Outside lawyer’s pro hac vice status"]) assert.ok(files.policySchema.includes(marker));
 });
 
 test("policy results expose version, authority posture, citation, and source", () => {
@@ -107,6 +109,9 @@ test("the knowledge surface inventories installed policy packs", () => {
   assert.match(files.checks, /pack\.contentHash\.slice/);
   assert.match(files.checks, /pack\.effectiveFrom/);
   assert.match(files.checks, /href=\{pack\.sourceUrl\}/);
+  assert.match(files.checks, /Review validation pending/);
+  assert.match(files.checks, /clearance checks/);
+  assert.match(files.checks, /typed facts/);
 });
 
 test("traffic lights always expose their state as visible text", () => {

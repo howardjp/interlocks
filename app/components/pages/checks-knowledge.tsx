@@ -3,16 +3,14 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Icon } from "../icons";
 import { Empty, formatDate, Modal, Pill, SectionHeading, SubmitButton, TrafficLight, titleCase } from "../primitives";
-import type { AuthorityStatus, Command, PolicyPack, Snapshot } from "../types";
+import type { AuthorityStatus, Command, PolicyFactDefinition, PolicyPack, Snapshot } from "../types";
 
 type DraftAuthority = AuthorityStatus|"";
 type DraftQuestion = {
   id:number;
   text:string;
   authorities:Record<string,DraftAuthority>;
-  delawareCounselConfirmed:"UNKNOWN"|"YES"|"NO";
-  outsideCounselPresent:"UNKNOWN"|"YES"|"NO";
-  proHacViceStatus:string;
+  facts:Record<string,boolean|string|number|undefined>;
 };
 
 function useAction() {
@@ -26,13 +24,28 @@ function initialAuthorities(packs:PolicyPack[]) {
 }
 
 function draftQuestion(id:number,packs:PolicyPack[]):DraftQuestion {
-  return { id,text:"What conflicts or professional duties should be reviewed before this matter proceeds?",authorities:initialAuthorities(packs),delawareCounselConfirmed:"UNKNOWN",outsideCounselPresent:"UNKNOWN",proHacViceStatus:"" };
+  return { id,text:"What conflicts should be cleared before this matter proceeds?",authorities:initialAuthorities(packs),facts:{} };
 }
 
-function booleanFact(value:"UNKNOWN"|"YES"|"NO") { return value==="UNKNOWN"?undefined:value==="YES"; }
+function factDefinitions(packs:PolicyPack[],authorities:Record<string,DraftAuthority>) {
+  const definitions=new Map<string,PolicyFactDefinition>();
+  for(const pack of packs){if(!authorities[pack.id])continue;const items=Array.isArray(pack.manifest.factDefinitions)?pack.manifest.factDefinitions as PolicyFactDefinition[]:[];for(const item of items)if(item.id!=="tribunal")definitions.set(item.id,item);}
+  return [...definitions.values()];
+}
+
+function packManifest(pack:PolicyPack) {
+  return pack.manifest as { factDefinitions?:unknown[]; rules?:unknown[]; validationStatus?:string; coverageScope?:string };
+}
+
+function FactInput({definition,value,onChange}:{definition:PolicyFactDefinition;value:boolean|string|number|undefined;onChange:(value:boolean|string|number|undefined)=>void}) {
+  if(definition.type==="BOOLEAN")return <label><span>{definition.label}</span><select value={value===true?"YES":value===false?"NO":""} onChange={(event)=>onChange(event.target.value==="YES"?true:event.target.value==="NO"?false:undefined)}><option value="">Unknown / not answered</option><option value="YES">Yes</option><option value="NO">No</option></select>{definition.description?<small>{definition.description}</small>:null}</label>;
+  if(definition.type==="ENUM")return <label><span>{definition.label}</span><select value={String(value??"")} onChange={(event)=>onChange(event.target.value||undefined)}><option value="">Unknown / not answered</option>{definition.options?.map((option)=><option value={option.value} key={option.value}>{option.label}</option>)}</select>{definition.description?<small>{definition.description}</small>:null}</label>;
+  return <label><span>{definition.label}</span><input type={definition.type==="NUMBER"?"number":"text"} value={String(value??"")} onChange={(event)=>onChange(event.target.value===""?undefined:definition.type==="NUMBER"?Number(event.target.value):event.target.value)}/></label>;
+}
 
 function AuthorityMatrix({packs,question,onChange}:{packs:PolicyPack[];question:DraftQuestion;onChange:(next:DraftQuestion)=>void}) {
-  const chancerySelected=Boolean(question.authorities["delaware-chancery"]);
+  const definitions=useMemo(()=>factDefinitions(packs,question.authorities),[packs,question.authorities]);
+  const groups=useMemo(()=>{const result=new Map<string,PolicyFactDefinition[]>();for(const definition of definitions)result.set(definition.group,[...(result.get(definition.group)||[]),definition]);return result;},[definitions]);
   return <div className="authority-editor">
     <div className="authority-head"><span>Authority</span><span>Application to this question</span></div>
     {packs.map((pack)=><label className="authority-row" key={pack.id}>
@@ -44,10 +57,7 @@ function AuthorityMatrix({packs,question,onChange}:{packs:PolicyPack[];question:
         <option value="COMPARATIVE_ONLY">Comparative only</option>
       </select>
     </label>)}
-    {chancerySelected?<fieldset className="tribunal-facts"><legend>Chancery Rule 170 facts</legend><div className="form-grid">
-      <label><span>Delaware counsel confirmed?</span><select value={question.delawareCounselConfirmed} onChange={(event)=>onChange({...question,delawareCounselConfirmed:event.target.value as DraftQuestion["delawareCounselConfirmed"]})}><option>UNKNOWN</option><option>YES</option><option>NO</option></select></label>
-      <label><span>Outside counsel appearing?</span><select value={question.outsideCounselPresent} onChange={(event)=>onChange({...question,outsideCounselPresent:event.target.value as DraftQuestion["outsideCounselPresent"]})}><option>UNKNOWN</option><option>YES</option><option>NO</option></select></label>
-    </div><label><span>Pro hac vice status</span><select value={question.proHacViceStatus} onChange={(event)=>onChange({...question,proHacViceStatus:event.target.value})}><option value="">Unknown</option><option>ACTIVE</option><option>PENDING</option><option>DENIED</option><option>EXPIRED</option><option>NOT_STARTED</option></select></label></fieldset>:null}
+    <fieldset className="clearance-facts"><legend>Conflict-clearance facts</legend><p>Open only the sections implicated by this question. Unanswered trigger facts do not manufacture a conflict; unanswered requirements remain visible once a trigger is established.</p>{[...groups.entries()].map(([group,items],index)=><details key={group} open={index===0}><summary><strong>{group}</strong><span>{items.length} facts</span></summary><div className="clearance-fact-grid">{items.map((definition)=><FactInput key={definition.id} definition={definition} value={question.facts[definition.id]} onChange={(value)=>onChange({...question,facts:{...question.facts,[definition.id]:value}})}/>)}</div></details>)}</fieldset>
   </div>;
 }
 
@@ -72,8 +82,7 @@ export function ChecksPage({data,command}:{data:Snapshot;command:Command}) {
         matterId:values.matterId,
         subjects:[{entityId:entity.id,name:entity.canonicalName,role:values.subjectRole}],
         questions:questions.map((item,index)=>{
-          const context:Record<string,unknown>={}; const counsel=booleanFact(item.delawareCounselConfirmed); const outside=booleanFact(item.outsideCounselPresent);
-          if(counsel!==undefined)context.delawareCounselConfirmed=counsel;if(outside!==undefined)context.outsideCounselPresent=outside;if(item.proHacViceStatus)context.proHacViceStatus=item.proHacViceStatus;
+          const context=Object.fromEntries(Object.entries(item.facts).filter(([,value])=>value!==undefined));
           return { key:`question-${index+1}`,text:item.text,context,authorities:Object.entries(item.authorities).filter(([,status])=>status).map(([packId,status])=>({packId,status})) };
         }),
       }) as {id:string};
@@ -103,7 +112,7 @@ export function KnowledgePage({data,command}:{data:Snapshot;command:Command}) {
   const [mode,setMode]=useState<"assertion"|"inference"|"document"|null>(null); const action=useAction();
   const submit=(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();const form=event.currentTarget;const activeMode=mode;if(!activeMode)return;void action.run(async()=>{const values=Object.fromEntries(new FormData(form));if(activeMode==="document"){const file=(form.elements.namedItem("file") as HTMLInputElement).files?.[0];if(!file)throw new Error("Choose a file");values.filename=file.name;values.mediaType=file.type||"application/octet-stream";values.bytesBase64=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(reader.error);reader.onload=()=>resolve(String(reader.result).split(",")[1]);reader.readAsDataURL(file);});delete values.file;}await command(activeMode==="document"?"document.upload":`${activeMode}.create`,values);setMode(null);});};
   return <>
-    <article className="card panel policy-catalog"><SectionHeading eyebrow="Jurisdictional Policy Engine" title="Installed legal authority packs"/><p className="page-intro">Every evaluation records the pack version, source, fact hash, rule trace, and authority status used at that moment.</p><div className="policy-pack-grid">{data.policyPacks.map((pack)=><a href={pack.sourceUrl} target="_blank" rel="noreferrer" className="policy-pack" key={`${pack.id}-${pack.version}`}><span><Icon name="shield"/></span><div><header><strong>{pack.shortTitle||pack.title}</strong><Pill tone={pack.authorityType==="MODEL"?"blue":pack.authorityType==="TRIBUNAL"?"yellow":"green"}>{titleCase(pack.authorityType)}</Pill></header><p>{pack.description}</p><footer><span>{pack.version}</span><span>Effective {formatDate(pack.effectiveFrom)}</span><code>{pack.contentHash.slice(0,10)}…</code></footer></div></a>)}</div></article>
+    <article className="card panel policy-catalog"><SectionHeading eyebrow="Jurisdictional Policy Engine" title="Installed legal authority packs"/><p className="page-intro">Every evaluation records the pack version, source, fact hash, rule trace, and authority status used at that moment. These packs cover conflict clearance only and remain visibly marked for substantive legal review.</p><div className="policy-pack-grid">{data.policyPacks.map((pack)=>{const manifest=packManifest(pack);return <a href={pack.sourceUrl} target="_blank" rel="noreferrer" className="policy-pack" key={`${pack.id}-${pack.version}`}><span><Icon name="shield"/></span><div><header><strong>{pack.shortTitle||pack.title}</strong><Pill tone={pack.authorityType==="MODEL"?"blue":pack.authorityType==="TRIBUNAL"?"yellow":"green"}>{titleCase(pack.authorityType)}</Pill></header><p>{pack.description}</p><div className="pack-assurance"><Pill tone="yellow">Review validation pending</Pill><span>{manifest.rules?.length||0} clearance checks</span><span>{manifest.factDefinitions?.length||0} typed facts</span></div><footer><span>{pack.version}</span><span>Effective {formatDate(pack.effectiveFrom)}</span><code>{pack.contentHash.slice(0,10)}…</code></footer></div></a>;})}</div></article>
     <div className="knowledge-grid"><article className="card panel"><SectionHeading eyebrow="Recorded fact" title="Assertions" action={<button className="secondary-button" onClick={()=>setMode("assertion")}><Icon name="plus"/>Assert</button>}/><div className="dense-list">{data.assertions.map((item)=><div key={item.id}><Pill tone="green">ASSERTION</Pill><strong>{titleCase(item.predicate)}</strong><p>{item.objectText||item.objectId}</p><span>{item.provenance||"Direct entry"} · {formatDate(item.recordedAt,true)}</span></div>)}</div></article><article className="card panel"><SectionHeading eyebrow="System conclusion" title="Inferences" action={<button className="secondary-button" onClick={()=>setMode("inference")}><Icon name="plus"/>Infer</button>}/><div className="dense-list">{data.inferences.map((item)=><div key={item.id} className={item.superseded?"superseded":""}><Pill tone="yellow">INFERENCE</Pill><strong>{item.conclusion}</strong><p>{item.evidenceSummary}</p><span>Corpus {item.corpusRevision}{item.matchConfidence?` · ${item.matchConfidence}`:""}</span></div>)}</div></article><article className="card panel span-two"><SectionHeading eyebrow="Immutable source material" title="Documents and evidence" action={<button className="primary-button" onClick={()=>setMode("document")}><Icon name="upload"/>Upload</button>}/><div className="document-grid">{data.documents.map((item)=><div className="document-card" key={item.id}><span><Icon name="file"/></span><div><strong>{item.filename}</strong><p>{item.description||item.mediaType}</p><footer><code>{item.sha256.slice(0,12)}…</code><span>{item.attachmentCount} attachments · {item.evidenceLinkCount} evidence links</span></footer></div></div>)}</div>{!data.documents.length?<Empty title="No documents" message="Upload source material and attach it to resources or evidence records."/>:null}</article></div>
     {mode?<Modal title={mode==="document"?"Upload immutable document":mode==="assertion"?"Record an assertion":"Record an inference"} eyebrow={mode==="inference"?"System conclusion":"Evidence corpus"} onClose={()=>setMode(null)}><form className="modal-form" onSubmit={submit}>{mode==="document"?<><label><span>File</span><input name="file" type="file" required/></label><label><span>Description</span><input name="description"/></label><label><span>Confidentiality</span><select name="confidentialityScope"><option>WORKSPACE</option><option>RESTRICTED</option><option>PERSONAL</option></select></label></>:<>{mode==="assertion"?<><div className="form-grid"><label><span>Subject type</span><select name="subjectType"><option>ENTITY</option><option>PERSON</option><option>MATTER</option></select></label><label><span>Subject</span><select name="subjectId">{data.entities.map((entity)=><option value={entity.id} key={entity.id}>{entity.canonicalName}</option>)}</select></label></div><label><span>Predicate</span><input name="predicate" required placeholder="is affiliated with"/></label><label><span>Object or value</span><input name="objectText" required/></label><label><span>Provenance</span><input name="provenance" required placeholder="Source and observation method"/></label></>:<><div className="form-grid"><label><span>Subject type</span><select name="subjectType"><option>ENTITY</option><option>PERSON</option><option>MATTER</option></select></label><label><span>Subject</span><select name="subjectId">{data.entities.map((entity)=><option value={entity.id} key={entity.id}>{entity.canonicalName}</option>)}</select></label></div><label><span>Inference type</span><input name="inferenceType" required/></label><label><span>Conclusion</span><textarea name="conclusion" required rows={3}/></label><label><span>Evidence summary</span><textarea name="evidenceSummary" required rows={3}/></label><label><span>Match confidence</span><select name="matchConfidence"><option value="">Not applicable</option><option>EXACT</option><option>STRONG</option><option>POSSIBLE</option><option>RELATED</option></select></label></>}</>}{action.error?<p className="form-error">{action.error}</p>:null}<footer><button type="button" className="secondary-button" onClick={()=>setMode(null)}>Cancel</button><SubmitButton busy={action.busy} label="Save record"/></footer></form></Modal>:null}
   </>;

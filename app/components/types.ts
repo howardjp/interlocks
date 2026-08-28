@@ -24,6 +24,7 @@ export type AuditEvent = { id:string;actorAccountId:string|null;actorName:string
 export type AssociatedRequest = { id:string;subjectPersonId:string;subjectPersonName:string;associatedEntityId:string;associatedEntityName:string;queryEntityId:string;queryEntityName:string;question:string;disclosureScope:string;status:string;requestedAt:string;expiresAt:string|null };
 export type AssociatedResponse = { id:string;requestId:string;response:string;permittedDetail:string|null;respondedAt:string };
 export type AuthorityStatus = "CONTROLLING"|"POTENTIALLY_APPLICABLE"|"COMPARATIVE_ONLY";
+export type PolicyFactDefinition = { id:string;type:"BOOLEAN"|"ENUM"|"STRING"|"NUMBER";label:string;group:string;description:string|null;options?:Array<{value:string;label:string}> };
 export type PolicyPack = { id:string;version:string;title:string;shortTitle:string|null;authorityType:string;jurisdiction:string|null;publisher:string;effectiveFrom:string;effectiveTo:string|null;status:string;sourceUrl:string;description:string|null;dslVersion:string;contentHash:string;manifest:Record<string,unknown> };
 export type PolicyQuestion = { id:string;conflictCheckId:string;questionKey:string;questionText:string;scope:string;createdAt:string };
 export type PolicySelection = { id:string;questionId:string;packId:string;packVersion:string;authorityStatus:AuthorityStatus;selectionSource:string;rationale:string|null;selectedAt:string };

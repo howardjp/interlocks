@@ -60,6 +60,18 @@ test("policy-pack synchronization is idempotent", (t) => {
   assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_packs").count, 6);
 });
 
+test("the public catalog exposes only the latest installed version while retaining pack history", (t) => {
+  const repository = open(t);
+  repository.database.prepare(`INSERT INTO policy_packs
+    (pack_id,version,title,short_title,authority_type,jurisdiction,publisher,effective_from,effective_to,status,source_url,description,dsl_version,content_hash,manifest_json,installed_at)
+    SELECT pack_id,'1900.01-test',title,short_title,authority_type,jurisdiction,publisher,'1900-01-01',effective_to,status,source_url,description,dsl_version,?,manifest_json,'1900-01-01T00:00:00.000Z'
+    FROM policy_packs WHERE pack_id='aba-model'`).run("1".repeat(64));
+  const visible = repository.getSnapshot("acct-liam", "ws-northstar").policyPacks.filter((pack) => pack.id === "aba-model");
+  assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_packs WHERE pack_id='aba-model'").count, 2);
+  assert.equal(visible.length, 1);
+  assert.equal(visible[0].version, LEGAL_POLICY_PACKS.find((pack) => pack.id === "aba-model").version);
+});
+
 test("policy-pack synchronization rejects changed content without a version increment", (t) => {
   const repository = open(t);
   repository.database.prepare("UPDATE policy_packs SET content_hash=? WHERE pack_id='aba-model'").run("0".repeat(64));
@@ -75,6 +87,20 @@ test("an ordinary check receives the ABA first-blush baseline", (t) => {
   assert.deepEqual(snapshot.policySelections.map((item) => [item.packId, item.authorityStatus, item.selectionSource]), [
     ["aba-model", "POTENTIALLY_APPLICABLE", "SYSTEM_FALLBACK"],
   ]);
+});
+
+test("recorded corpus facts cannot be negated by a questionnaire answer", (t) => {
+  const repository = open(t);
+  repository.createConflictCheck("acct-liam", "ws-northstar", {
+    matterId:"m-helios",
+    subjects:[{ entityId:"o-easton", name:"Easton University", role:"ADVERSE_PARTY" }],
+    questions:[question("aba-model", "POTENTIALLY_APPLICABLE", { context:{ currentClientAdversity:false, sameProceedingAdverseClients:false } })],
+  });
+  const snapshot = JSON.parse(scalar(repository, "SELECT fact_snapshot_json AS facts FROM policy_evaluations LIMIT 1").facts);
+  assert.equal(snapshot.currentClientAdversity, true);
+  assert.equal(snapshot.sameProceedingAdverseClients, true);
+  assert.ok(snapshot.indicators.some((indicator) => indicator.type === "CURRENT_CLIENT_ADVERSITY"));
+  assert.ok(snapshot.indicators.some((indicator) => indicator.type === "SAME_MATTER_ADVERSE_POSITIONS"));
 });
 
 test("a controlling jurisdiction automatically receives ABA as a comparative baseline", (t) => {
@@ -140,7 +166,7 @@ for (const [label, context, pattern] of [
   ["a derived-fact override", { indicators:[] }, /Unsupported policy context fact/],
   ["a non-boolean counsel answer", { delawareCounselConfirmed:"probably" }, /must be a boolean/],
   ["an unknown tribunal", { tribunal:"MARS_SUPREME_COURT" }, /Unsupported tribunal/],
-  ["an unknown pro hac vice status", { proHacViceStatus:"MAYBE" }, /Unsupported pro hac vice status/],
+  ["an unknown pro hac vice status", { proHacViceStatus:"MAYBE" }, /Unsupported proHacViceStatus value/],
 ]) {
   test(`policy questions reject ${label} before evaluation`, (t) => {
     const repository = open(t);
@@ -149,13 +175,13 @@ for (const [label, context, pattern] of [
   });
 }
 
-test("a check persists twelve independent questions and sixty model-rule results", (t) => {
+test("a check persists twelve independent questions and the complete model-rule corpus", (t) => {
   const repository = open(t);
   const questions = Array.from({ length:12 }, (_, index) => ({ key:`q-${index}`, text:`Question ${index}?`, authorities:[] }));
   repository.createConflictCheck("acct-liam", "ws-northstar", unknownCheck({ questions }));
   assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_questions").count, 12);
   assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_evaluations").count, 12);
-  assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_rule_results").count, 60);
+  assert.equal(scalar(repository, "SELECT COUNT(*) AS count FROM policy_rule_results").count, 12 * LEGAL_POLICY_PACKS.find((pack) => pack.id === "aba-model").rules.length);
 });
 
 test("authority choices remain independent at the question level", (t) => {
@@ -193,7 +219,7 @@ test("unknown Chancery facts create a policy-linked review case", (t) => {
 for (const [label, context, expectedState, expectedOutcome] of [
   ["confirmed Delaware counsel and no outside counsel", { delawareCounselConfirmed:true, outsideCounselPresent:false }, "GREEN", "NOT_MATCHED"],
   ["unconfirmed Delaware counsel", { delawareCounselConfirmed:false, outsideCounselPresent:false }, "YELLOW", "MATCHED"],
-  ["active pro hac vice status", { delawareCounselConfirmed:true, outsideCounselPresent:true, proHacViceStatus:"ACTIVE" }, "GREEN", "NOT_MATCHED"],
+  ["active pro hac vice status", { delawareCounselConfirmed:true, outsideCounselPresent:true, proHacViceStatus:"ACTIVE", outsideCounselDelawareUndertaking:true }, "GREEN", "NOT_MATCHED"],
   ["pending pro hac vice status", { delawareCounselConfirmed:true, outsideCounselPresent:true, proHacViceStatus:"PENDING" }, "YELLOW", "MATCHED"],
 ]) {
   test(`Chancery evaluates ${label}`, (t) => {
@@ -230,12 +256,12 @@ test("D.C. results retain exact source, citation, and effective version", (t) =>
   const repository = open(t);
   const created = repository.createConflictCheck("acct-liam", "ws-northstar", { subjects:[{ name:"Easton University", role:"ADVERSE_PARTY" }], matterId:"m-helios", questions:[question("district-of-columbia", "CONTROLLING")] });
   const snapshot = repository.getSnapshot("acct-liam", "ws-northstar");
-  const result = snapshot.policyRuleResults.find((item) => item.packId === "district-of-columbia" && item.ruleId === "dc.1.7-a-b");
+  const result = snapshot.policyRuleResults.find((item) => item.packId === "district-of-columbia" && item.ruleId === "dc.1.7.current-client-adversity");
   const evaluation = snapshot.policyEvaluations.find((item) => item.id === result.evaluationId);
   assert.equal(created.workflowState, "YELLOW");
-  assert.equal(result.citation, "D.C. Rule 1.7(a)–(b)");
+  assert.equal(result.citation, "D.C. Rule 1.7(b)(1)");
   assert.equal(result.sourceUrl, "https://www.dcbar.org/for-lawyers/legal-ethics/rules-of-professional-conduct");
-  assert.equal(evaluation.engineVersion, "1.0.0");
+  assert.equal(evaluation.engineVersion, "1.1.0");
 });
 
 for (const [table, column] of [
@@ -296,7 +322,7 @@ test("check export preserves the complete policy evaluation record", (t) => {
   assert.equal(exported.policyQuestions.length, 1);
   assert.equal(exported.policySelections.length, 2);
   assert.equal(exported.policyEvaluations.length, 2);
-  assert.equal(exported.policyRuleResults.length, 10);
+  assert.equal(exported.policyRuleResults.length, 2 * LEGAL_POLICY_PACKS.find((pack) => pack.id === "aba-model").rules.length);
   assert.ok(exported.policySelections.every((selection) => JSON.parse(selection.pack_snapshot_json).contentHash));
 });
 
