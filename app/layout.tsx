@@ -19,9 +19,6 @@ export const metadata: Metadata = {
   title: "Interlocks — Conflicts, clearly managed",
   description:
     "A local-first conflicts management workspace for disclosures, reviews, controls, and audit history.",
-  other: {
-    "codex-preview": "development",
-  },
   icons: {
     icon: "/interlocks-icon.svg",
     shortcut: "/interlocks-icon.svg",

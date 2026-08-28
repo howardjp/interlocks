@@ -28,6 +28,6 @@ test("dark mode is system-aware, persistent, and accessible", async () => {
 
 test("deployment preparation includes managed auth, security headers, migrations, health, and CI", async () => {
   const source=await sources(["../proxy.ts","../lib/auth/identity-provider.mjs","../lib/config.mjs","../lib/persistence/sqlite-interlocks-repository.mjs","../next.config.ts","../app/api/health/route.js","../.github/workflows/ci.yml"]);
-  for(const marker of ["authkit","WorkOSIdentityProvider","WORKOS_COOKIE_PASSWORD","Content-Security-Policy","schemaVersion","npm run build"]) assert.match(source,new RegExp(marker));
+  for(const marker of ["authkit","WorkOSIdentityProvider","WORKOS_COOKIE_PASSWORD","Content-Security-Policy","schemaVersion","npm run test:all","playwright install"]) assert.match(source,new RegExp(marker));
   assert.match(source,/INTERLOCKS_DEMO_MODE must be false in production/); assert.match(source,/INVITE_ONLY/);
 });

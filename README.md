@@ -38,6 +38,15 @@ npm run test:all
 
 This runs lint, domain and SQLite integration tests, the production build, a production HTTP workflow, and built-artifact validation.
 
+The separate browser journey requires Playwright Chromium:
+
+```bash
+npx playwright install chromium
+npm run test:browser
+```
+
+CI runs both gates. See [`docs/testing.md`](docs/testing.md) for the assurance matrix, coverage floors, and regression policy.
+
 To bootstrap an existing account as the first platform administrator:
 
 ```bash
@@ -51,4 +60,4 @@ The promotion is recorded as an immutable audit event.
 - [`docs/architecture.md`](docs/architecture.md) — security and domain boundaries.
 - [`docs/legal-ethics-audit.md`](docs/legal-ethics-audit.md) — ABA-model legal ethics audit and product consequences.
 - [`docs/deployment.md`](docs/deployment.md) — production configuration and mechanical deployment checklist. No deployment has been performed.
-
+- [`docs/testing.md`](docs/testing.md) — exhaustive test layers, commands, coverage floors, and CI policy.
