@@ -92,6 +92,8 @@ try {
   const chanceryQuestion = checkDialog.locator(".question-editor").nth(1);
   await chanceryQuestion.locator("textarea").fill("What Chancery appearance requirements apply?");
   await chanceryQuestion.getByLabel("Delaware Court of Chancery authority status").selectOption("POTENTIALLY_APPLICABLE");
+  const chanceryFacts = chanceryQuestion.locator("details").filter({ hasText:"Delaware Court of Chancery admission" });
+  await chanceryFacts.locator("summary").click();
   await chanceryQuestion.getByLabel("Has responsible Delaware counsel been confirmed?").selectOption("NO");
   await chanceryQuestion.getByLabel("Will a lawyer not admitted in Delaware appear?").selectOption("NO");
   await checkDialog.getByRole("button", { name: "Run analysis" }).click();
