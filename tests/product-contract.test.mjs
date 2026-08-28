@@ -7,7 +7,7 @@ async function sources(paths) { return (await Promise.all(paths.map((path) => re
 
 test("the product surface exposes the person-first MVP workflows", async () => {
   const source = await sources(["../app/components/interlocks-app.tsx","../app/components/pages/review-pages.tsx","../app/components/pages/checks-knowledge.tsx","../app/components/pages/ledger-associated.tsx","../app/components/pages/portfolio-admin.tsx","../app/components/pages/admin-console.tsx","../app/components/pages/data-audit.tsx","../app/invite/[token]/page.tsx"]);
-  for (const label of ["New disclosure","Conflict checks","Review queue","My ledger","Knowledge","Associated people","Imports & exports","Audit trail","Record human disposition","Consent and waivers","Professional screens","Platform admin","View as","Accept invitation","Reset demo data","Jurisdictional Policy Engine","Installed legal authority packs","Choose authority independently"]) assert.ok(source.includes(label),`Missing ${label}`);
+  for (const label of ["New disclosure","Conflict checks","Review queue","My ledger","Knowledge","Family & associated","Imports & exports","Audit trail","Record human disposition","Consent and waivers","Professional screens","Platform admin","View as","Accept invitation","Reset demo data","Jurisdictional Policy Engine","Installed legal authority packs","Choose authority independently"]) assert.ok(source.includes(label),`Missing ${label}`);
   assert.doesNotMatch(source,/riskScore|riskLevel|score-ring|numeric score/i);
 });
 

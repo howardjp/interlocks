@@ -32,7 +32,7 @@ const allUi = [files.app, files.primitives, files.review, files.checks, files.le
 for (const [id, label] of [
   ["dashboard", "Dashboard"], ["checks", "Conflict checks"], ["review", "Review queue"],
   ["ledger", "My ledger"], ["knowledge", "Knowledge"], ["portfolio", "Portfolio"],
-  ["associated", "Associated people"], ["data", "Imports & exports"], ["audit", "Audit trail"],
+  ["associated", "Family & associated"], ["data", "Imports & exports"], ["audit", "Audit trail"],
 ]) {
   test(`primary navigation exposes ${label}`, () => {
     assert.match(files.app, new RegExp(`id:\"${id}\",label:\"${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\"`));
@@ -42,7 +42,7 @@ for (const [id, label] of [
 for (const [view, title] of [
   ["dashboard", "What needs attention"], ["checks", "Check before acting"], ["review", "Review queue"],
   ["ledger", "My portable ledger"], ["knowledge", "Knowledge corpus"], ["portfolio", "Entities and matters"],
-  ["associated", "Associated people"], ["data", "Imports and exports"], ["audit", "Audit trail"],
+  ["associated", "Family & associated people"], ["data", "Imports and exports"], ["audit", "Audit trail"],
   ["admin", "Global administration"], ["settings", "People, roles, and policy"],
 ]) {
   test(`${view} has a product-specific page title`, () => {
@@ -54,7 +54,8 @@ for (const command of [
   "workspace.create", "invitation.create", "invitation.accept", "membership.update", "entity.create", "matter.create",
   "assertion.create", "inference.create", "document.upload", "check.create", "disclosure.create", "case.action",
   "consent.create", "screen.create", "control.complete", "associated.request", "associated.respond", "import.preview",
-  "import.commit", "demo.reset",
+  "family.association.create", "family.association.end", "family.interest.create", "family.interest.revoke",
+  "family.link.request", "family.link.respond", "family.link.revoke", "import.commit", "demo.reset",
 ]) {
   test(`command API explicitly routes ${command}`, () => {
     assert.ok(files.commands.includes(`"${command}"`));
@@ -65,7 +66,7 @@ for (const aggregate of [
   "entities", "matters", "relationships", "cases", "checks", "hits", "controls", "notes", "determinations",
   "consents", "screens", "assertions", "inferences", "policyPacks", "policyQuestions", "policySelections",
   "policyEvaluations", "policyRuleResults", "documents", "memberships", "invitations",
-  "associatedRequests", "associatedResponses", "audit", "ledger",
+  "associatedRequests", "associatedResponses", "personalAssociations", "associationInterests", "familyAccountLinks", "audit", "ledger",
 ]) {
   test(`snapshot UI type includes ${aggregate}`, () => {
     assert.match(files.types, new RegExp(`\\b${aggregate}:`));
@@ -241,7 +242,62 @@ test("portable ledger explains the tenant boundary on departure", () => {
 
 test("associated-person request records a bounded disclosure scope", () => {
   assert.ok(files.ledger.includes('name="disclosureScope"'));
-  assert.match(files.ledger, /Ask a bounded question/);
+  assert.match(files.ledger, /Bounded associated-person requests/);
+});
+
+test("family surface exposes both required operating models", () => {
+  assert.match(files.ledger, /Two family models, both first-class/);
+  assert.match(files.ledger, /Direct declaration/);
+  assert.match(files.ledger, /Linked Interlocks accounts/);
+  assert.match(files.ledger, /No account required/);
+  assert.match(files.ledger, /Mutual consent/);
+});
+
+test("direct family declaration collects identity, relationship, provenance, dates, and scope", () => {
+  for (const field of ["associatedPersonName","relationshipType","primaryProfession","provenance","effectiveFrom","effectiveTo","disclosureScope"]) assert.ok(files.ledger.includes(`name="${field}"`));
+  assert.match(files.ledger, /MATCH_AND_RELATIONSHIP/);
+  assert.match(files.ledger, /CONFLICT_CHECK_ONLY/);
+});
+
+test("declared family interests collect entity and involvement without requiring an account", () => {
+  for (const field of ["entityName","entityKind","involvement","description"]) assert.ok(files.ledger.includes(`name="${field}"`));
+  assert.match(files.ledger, /Microsoft Corporation/);
+  assert.match(files.ledger, /Stop sharing/);
+  assert.match(files.ledger, /End association/);
+});
+
+test("linked family accounts are explicitly consent-bound, one-hop, and revocable", () => {
+  for (const marker of ["Consent-bound account link","one-hop entity matching","does not expose their ledger entries","recursively inspect their associations","Acceptance authorizes reciprocal entity matching only","Revoke link"]) assert.ok(files.ledger.includes(marker));
+  assert.match(files.ledger, /ENTITY_MATCH_ONLY|entity-match only/i);
+  assert.match(files.ledger, /underlying account history remains private/i);
+});
+
+test("family link workflow supports request, acceptance, decline, and revocation", () => {
+  for (const command of ["family.link.request","family.link.respond","family.link.revoke"]) assert.ok(files.ledger.includes(command));
+  for (const response of ["ACCEPT","DECLINE"]) assert.ok(files.ledger.includes(`response:"${response}"`));
+  assert.match(files.ledger, /targetEmail/);
+  assert.match(files.ledger, /expiresInDays/);
+});
+
+test("conflict checks accept private subjects and explicit covered people", () => {
+  assert.match(files.checks, /name="subjectName"/);
+  assert.match(files.checks, /Enter any person or organization/);
+  assert.match(files.checks, /Covered people to cross-reference/);
+  assert.match(files.checks, /participatingPersonIds:participants/);
+  assert.match(files.checks, /active consent-linked accounts/);
+});
+
+test("demo personas expose the declared-parent and linked-spouse stories", () => {
+  assert.match(files.app, /Nina Basu — Linked spouse/);
+  assert.match(files.app, /Maya Chen — Member · declared parent/);
+});
+
+test("family layouts adapt across tablet and mobile breakpoints", () => {
+  assert.match(files.styles, /\.family-overview/);
+  assert.match(files.styles, /\.family-interest/);
+  assert.match(files.styles, /\.covered-people/);
+  assert.match(files.styles, /@media\(max-width:900px\)\{\.covered-people/);
+  assert.match(files.styles, /@media\(max-width:580px\)\{\.family-overview/);
 });
 
 test("CSV interface exposes all supported import aggregates", () => {

@@ -54,6 +54,21 @@ SQLite is the complete local adapter. PostgreSQL-native ordered migrations and c
 
 The portable object is the Person-owned professional ledger, subject to its disclosure class and sharing authorization. Workspace matters, client data, documents, notes, determinations, and private relationships remain with the originating tenant. Departure ends membership access and reduces the active seat count without deleting either side's permitted records.
 
+## Family and associated-person boundary
+
+Interlocks supports two deliberately separate models:
+
+| Model | Stored object | What a conflict check may receive | What it never receives |
+|---|---|---|---|
+| Direct declaration | An owner-controlled `PersonalAssociation` to a real `Person`, plus explicitly shared `AssociationInterest` records | Matching entity, involvement, and—only when authorized—the relationship category | An account requirement, inferred relatives, or unrecorded facts |
+| Linked account | A reciprocal `FamilyAccountLink` accepted by the other account holder | One-hop entity-match signal from the other person's shareable `PORTABLE` ledger entries and the authorized relationship category | Ledger rows, context, source workspace, tenant records, the other person's declarations, or their linked accounts |
+
+Pending, declined, expired, and revoked account links contribute nothing to checking. An active link is not a Workspace membership and grants no account, ledger, or tenant access. Either party may revoke it; revocation advances the conflict corpus so later checks cannot silently reuse consent that no longer exists.
+
+Conflict checks record private candidate counts and a cryptographic fingerprint in the frozen knowledge snapshot, not private entity IDs or family resource IDs. A positive match creates ordinary workspace review evidence containing only the permitted match signal. Personal exports include the owner's own declarations and link metadata but not another account's ledger. Workspace exports exclude the personal ledger and all personal-family aggregates.
+
+The graph traversal rule is one hop: a covered person's direct declarations and accepted account links may participate, but Interlocks never walks from a linked spouse to that spouse's relatives or linked accounts. Workspace-bound associated-person inquiries remain a third, separate narrow-response workflow and do not become part of the portable family graph.
+
 ## Jurisdictional policy boundary
 
 The legal model does not encode ABA rules as universal automated outcomes. Each question selects one or more versioned packs as `CONTROLLING`, `POTENTIALLY_APPLICABLE`, or `COMPARATIVE_ONLY`. The ABA pack is permanent provisional/comparative infrastructure and cannot be marked controlling. Tribunal packs compose with licensing-jurisdiction packs; for example, selecting the Delaware Court of Chancery overlay also records Delaware professional-conduct rules as potentially applicable.

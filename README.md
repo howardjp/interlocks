@@ -15,7 +15,7 @@ npm run dev
 
 Open `http://localhost:3000`. Development mode creates and seeds `.data/interlocks.db`; immutable document bytes use `.data/documents/`.
 
-The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, MEMBER, workspace switching, and portable-ledger behavior. It is unavailable when `INTERLOCKS_ENV=production`.
+The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, MEMBER, workspace switching, portable-ledger behavior, a declared child with an outside role, and a consent-linked spouse account. It is unavailable when `INTERLOCKS_ENV=production`.
 
 ## What works
 
@@ -29,7 +29,9 @@ The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, ME
 - ABA is retained as provisional first-blush authority when governing law is unresolved and as a comparative baseline when controlling authority is selected; it is never represented as controlling law.
 - GREEN, YELLOW, and RED mean required action; a separate human disposition records professional judgment.
 - Assertions, point-in-time inferences, immutable documents, many-to-many evidence links, consent, screens, determinations, controls, and audit events are first-class.
-- Associated-person questions are bounded by an explicit disclosure scope.
+- Family and associated-person clearing supports both required models: an owner-declared Person who needs no account, and a separately owned Interlocks account connected through reciprocal, revocable consent.
+- Direct declarations can contribute authorized employment, ownership, fiduciary, and professional connections. Linked accounts contribute only one-hop entity matches from shareable portable entries; their ledgers, tenant records, and further family graph are never merged or exposed.
+- Workspace-bound associated-person questions remain a separate, bounded disclosure workflow.
 - CSV import is validated before an all-or-nothing commit. Personal, workspace, and check exports are purpose-specific.
 - SQLite schema changes use ordered migrations. PostgreSQL-native schema migrations and an adapter boundary are included for hosted cutover.
 
@@ -39,7 +41,7 @@ The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, ME
 npm run test:all
 ```
 
-This runs more than 13,000 named domain, typed-fact, jurisdiction-difference, policy-conformance, and SQLite integration tests with enforced coverage, plus lint, the production build, a production HTTP workflow, and built-artifact validation.
+This runs more than 14,000 named domain, privacy, consent, typed-fact, jurisdiction-difference, policy-conformance, and SQLite integration tests with enforced coverage, plus lint, the production build, a production HTTP workflow, and built-artifact validation.
 
 The separate browser journey requires Playwright Chromium:
 

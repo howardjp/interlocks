@@ -85,7 +85,7 @@ try {
   await page.getByRole("button", { name: "New check" }).click();
   const checkDialog = page.getByRole("dialog", { name: "Run a conflict and policy check" });
   await checkDialog.locator("select[name='matterId']").selectOption("m-aster");
-  await checkDialog.locator("select[name='subjectEntityId']").selectOption("o-meridian");
+  await checkDialog.locator("input[name='subjectName']").fill("Meridian Analytics");
   await checkDialog.getByLabel("Maryland Attorneys’ Rules of Professional Conduct authority status").selectOption("CONTROLLING");
   equal(await checkDialog.getByLabel("ABA Model Rules authority status").inputValue(), "COMPARATIVE_ONLY", "controlling law moves ABA to comparison");
   const prospectiveFacts = checkDialog.locator(".question-editor").first().locator("details").filter({ hasText:"Organizations and prospective clients" });
@@ -106,6 +106,28 @@ try {
   equal(await page.locator(".policy-question-result").count(), 2, "question-level policy results render independently");
   check((await page.getByRole("link", { name:/^Maryland Rule 19-301\.18/ }).count()) > 0, "Maryland citation renders");
   check((await page.getByText("Confirm responsible Delaware counsel for the Court of Chancery matter.", { exact: true }).count()) > 0, "Chancery finding renders");
+
+  await page.getByRole("button", { name: "New check" }).click();
+  const linkedCheck = page.getByRole("dialog", { name: "Run a conflict and policy check" });
+  await linkedCheck.locator("select[name='matterId']").selectOption("m-aster");
+  await linkedCheck.locator("input[name='subjectName']").fill("Aperture Technologies");
+  await linkedCheck.getByRole("button", { name: "Run analysis" }).click();
+  await linkedCheck.waitFor({ state:"detached" });
+  const linkedHit = page.locator(".hit-card").filter({ hasText:"Aperture Technologies" });
+  await linkedHit.waitFor();
+  check((await linkedHit.innerText()).includes("Family Account Link"), "linked spouse check exposes consent-link provenance");
+  check((await linkedHit.innerText()).includes("underlying ledger detail remains private"), "linked spouse check exposes its privacy boundary");
+
+  await page.getByRole("button", { name: "Family & associated", exact: true }).click();
+  await page.getByRole("heading", { name: "Family & associated people", exact: true, level: 1 }).waitFor();
+  await page.getByText("Two family models, both first-class", { exact:true }).waitFor();
+  await page.getByText("Nina Basu", { exact:true }).waitFor();
+  await page.locator(".demo-identity select").selectOption("acct-maya");
+  await page.getByText("Zoe Chen", { exact:true }).waitFor();
+  await page.getByText("Microsoft Corporation", { exact:true }).waitFor();
+  check((await page.locator(".family-card").innerText()).includes("Child"), "direct family declaration renders its relationship");
+  await page.locator(".demo-identity select").selectOption("acct-alex");
+  await page.getByText("Nina Basu", { exact:true }).waitFor();
 
   await page.getByRole("button", { name: "Review queue", exact: true }).click();
   await page.getByRole("heading", { name: "Review queue", exact: true, level: 1 }).waitFor();
@@ -143,7 +165,7 @@ try {
   await page.getByText("Browser Imported Entity", { exact: true }).waitFor();
 
   for (const [navigation, heading] of [
-    ["Dashboard", "What needs attention"], ["My ledger", "My portable ledger"], ["Associated people", "Associated people"],
+    ["Dashboard", "What needs attention"], ["My ledger", "My portable ledger"], ["Family & associated", "Family & associated people"],
     ["Audit trail", "Audit trail"], ["Settings", "People, roles, and policy"], ["Platform admin", "Global administration"],
   ]) {
     await page.getByRole("button", { name: navigation, exact: true }).click();
@@ -168,7 +190,7 @@ try {
   check(mobileOverflow.scrollWidth <= mobileOverflow.clientWidth, `mobile page has no horizontal overflow: ${JSON.stringify(mobileOverflow)}`);
 
   equal(runtimeErrors.length, 0, runtimeErrors.join("\n") || "no browser runtime errors");
-  console.log(`Browser E2E passed with ${assertions} assertions: rendering, accessibility, themes, disclosure, question-level legal policies, checks, review, upload, imports, navigation, and responsive layout.`);
+  console.log(`Browser E2E passed with ${assertions} assertions: rendering, accessibility, themes, disclosure, legal policies, both family models, private linked-account checks, review, upload, imports, navigation, and responsive layout.`);
 } finally {
   await browser?.close();
   server.kill("SIGTERM");

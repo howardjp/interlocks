@@ -62,7 +62,7 @@ function AuthorityMatrix({packs,question,onChange}:{packs:PolicyPack[];question:
 }
 
 export function ChecksPage({data,command}:{data:Snapshot;command:Command}) {
-  const [open,setOpen]=useState(false); const [selected,setSelected]=useState<string|null>(data.checks[0]?.id||null); const [questions,setQuestions]=useState<DraftQuestion[]>(()=>[draftQuestion(1,data.policyPacks)]); const action=useAction();
+  const [open,setOpen]=useState(false); const [selected,setSelected]=useState<string|null>(data.checks[0]?.id||null); const [questions,setQuestions]=useState<DraftQuestion[]>(()=>[draftQuestion(1,data.policyPacks)]); const [participants,setParticipants]=useState<string[]>(()=>[data.actor.personId]); const action=useAction();
   const check=data.checks.find((item)=>item.id===selected);
   const hits=useMemo(()=>data.hits.filter((item)=>item.conflictCheckId===selected),[data.hits,selected]);
   const policyQuestions=useMemo(()=>data.policyQuestions.filter((item)=>item.conflictCheckId===selected),[data.policyQuestions,selected]);
@@ -73,14 +73,15 @@ export function ChecksPage({data,command}:{data:Snapshot;command:Command}) {
   const selectionByEvaluation=useMemo(()=>new Map(evaluations.map((evaluation)=>[evaluation.id,data.policySelections.find((selection)=>selection.id===evaluation.authoritySelectionId)])),[data.policySelections,evaluations]);
 
   const updateQuestion=(id:number,next:DraftQuestion)=>setQuestions((current)=>current.map((item)=>item.id===id?next:item));
-  const openDialog=()=>{setQuestions([draftQuestion(Date.now(),data.policyPacks)]);setOpen(true);};
+  const openDialog=()=>{setQuestions([draftQuestion(Date.now(),data.policyPacks)]);setParticipants([data.actor.personId]);setOpen(true);};
   const submit=(event:FormEvent<HTMLFormElement>)=>{
-    event.preventDefault(); const values=Object.fromEntries(new FormData(event.currentTarget)); const entity=data.entities.find((item)=>item.id===values.subjectEntityId);
+    event.preventDefault(); const values=Object.fromEntries(new FormData(event.currentTarget)); const subjectName=String(values.subjectName||"").trim(); const entity=data.entities.find((item)=>item.canonicalName.toLowerCase()===subjectName.toLowerCase());
     void action.run(async()=>{
-      if(!entity)throw new Error("Choose a subject");
+      if(!subjectName)throw new Error("Enter a proposed subject");
       const result=await command("check.create",{
         matterId:values.matterId,
-        subjects:[{entityId:entity.id,name:entity.canonicalName,role:values.subjectRole}],
+        participatingPersonIds:participants,
+        subjects:[{entityId:entity?.id,name:subjectName,role:values.subjectRole}],
         questions:questions.map((item,index)=>{
           const context=Object.fromEntries(Object.entries(item.facts).filter(([,value])=>value!==undefined));
           return { key:`question-${index+1}`,text:item.text,context,authorities:Object.entries(item.authorities).filter(([,status])=>status).map(([packId,status])=>({packId,status})) };
@@ -102,7 +103,7 @@ export function ChecksPage({data,command}:{data:Snapshot;command:Command}) {
         {!hits.length&&!policyQuestions.length?<Empty title="No surfaced connections" message="The recorded corpus produced no deterministic or policy result for this check."/>:null}
       </article>
     </div>
-    {open?<Modal title="Run a conflict and policy check" eyebrow="Question-level legal analysis" onClose={()=>setOpen(false)} wide><form className="modal-form policy-check-form" onSubmit={submit}><div className="form-grid"><label><span>Matter</span><select name="matterId" required>{data.matters.map((item)=><option value={item.id} key={item.id}>{item.code} — {item.title}</option>)}</select></label><label><span>Proposed subject</span><select name="subjectEntityId" required>{data.entities.map((entity)=><option value={entity.id} key={entity.id}>{entity.canonicalName}</option>)}</select></label></div><label><span>Subject&apos;s role in this analysis</span><select name="subjectRole" defaultValue="ADVERSE_PARTY"><option>ADVERSE_PARTY</option><option>OPPOSING_PARTY</option><option>CLIENT</option><option>PROSPECTIVE_CLIENT</option><option>FORMER_CLIENT</option><option>RELATED_PARTY</option><option>OTHER</option></select></label>
+    {open?<Modal title="Run a conflict and policy check" eyebrow="Question-level legal analysis" onClose={()=>setOpen(false)} wide><form className="modal-form policy-check-form" onSubmit={submit}><div className="form-grid"><label><span>Matter</span><select name="matterId" required>{data.matters.map((item)=><option value={item.id} key={item.id}>{item.code} — {item.title}</option>)}</select></label><label><span>Proposed subject</span><input name="subjectName" list="known-conflict-subjects" required placeholder="Enter any person or organization"/><datalist id="known-conflict-subjects">{data.entities.map((entity)=><option value={entity.canonicalName} key={entity.id}/>)}</datalist></label></div><label><span>Subject&apos;s role in this analysis</span><select name="subjectRole" defaultValue="ADVERSE_PARTY"><option>ADVERSE_PARTY</option><option>OPPOSING_PARTY</option><option>CLIENT</option><option>PROSPECTIVE_CLIENT</option><option>FORMER_CLIENT</option><option>RELATED_PARTY</option><option>OTHER</option></select></label><fieldset className="covered-people"><legend>Covered people to cross-reference</legend><p>Selected people contribute their authorized portable ledger, direct family declarations, and active consent-linked accounts. Linked-account details remain private unless a match is found.</p><div>{data.memberships.filter((item)=>item.status==="ACTIVE").map((item)=><label key={item.id}><input type="checkbox" checked={participants.includes(item.personId)} onChange={(event)=>setParticipants((current)=>event.target.checked?[...new Set([...current,item.personId])]:current.filter((personId)=>personId!==item.personId))}/><span>{item.personName}</span></label>)}</div></fieldset>
       <div className="question-editors">{questions.map((item,index)=><section className="question-editor" key={item.id}><header><div><Pill tone="blue">Question {index+1}</Pill><strong>Choose authority independently</strong></div>{questions.length>1?<button type="button" className="text-button danger" onClick={()=>setQuestions((current)=>current.filter((candidate)=>candidate.id!==item.id))}>Remove</button>:null}</header><label><span>Question</span><textarea rows={2} required value={item.text} onChange={(event)=>updateQuestion(item.id,{...item,text:event.target.value})}/></label><AuthorityMatrix packs={data.policyPacks} question={item} onChange={(next)=>updateQuestion(item.id,next)}/></section>)}</div>
       <button type="button" className="secondary-button add-question" disabled={questions.length>=12} onClick={()=>setQuestions((current)=>[...current,draftQuestion(Date.now()+current.length,data.policyPacks)])}><Icon name="plus"/>Add another policy question</button><p className="model-note"><Icon name="shield"/>Interlocks applies versioned packs to a frozen fact snapshot. Results are review signals with exact citations—not machine-made legal conclusions. ABA remains available for provisional screening and comparison.</p>{action.error?<p className="form-error" role="alert">{action.error}</p>:null}<footer><button type="button" className="secondary-button" onClick={()=>setOpen(false)}>Cancel</button><SubmitButton busy={action.busy} label="Run analysis" busyLabel="Evaluating…"/></footer></form></Modal>:null}
   </>;
