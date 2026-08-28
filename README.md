@@ -1,15 +1,10 @@
 # Interlocks
 
-Interlocks is a working local prototype for organizational conflict management.
-It connects disclosures to real matters, gives reviewers an explainable triage
-queue, records human decisions, turns management plans into owned controls, and
-preserves the activity history needed to show what happened.
+Interlocks is a locally testable, multi-user institutional-conflicts MVP. It records facts with provenance, surfaces deterministic connections for review, keeps professional judgment explicit, turns mitigations into owned controls, and preserves an attributable history.
 
-The supplied Interlocks heraldic icon is used unchanged. The supplied Muse Ant
-Design Dashboard informed the compact rail-and-card composition; Interlocks’
-screens and workflows were rebuilt around the product rather than the template.
+The supplied Interlocks heraldic icon is used unchanged. The supplied Muse Ant Design Dashboard informed the compact rail-and-card composition; the product and workflows were rebuilt around Interlocks.
 
-## Run it
+## Run locally
 
 Requirements: Node.js 22.13 or newer and npm.
 
@@ -18,47 +13,42 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. The local SQLite database is created and seeded
-on first use at `.data/interlocks.db`.
+Open `http://localhost:3000`. Development mode creates and seeds `.data/interlocks.db`; immutable document bytes use `.data/documents/`.
 
-To use another database file:
+The local demo identity control can exercise SUPERADMIN, FIRMADMIN, REVIEWER, MEMBER, workspace switching, and portable-ledger behavior. It is unavailable when `INTERLOCKS_ENV=production`.
 
-```bash
-INTERLOCKS_DB_PATH=/absolute/path/to/interlocks.db npm run dev
-```
+## What works
 
-## Prototype workflows
+- Person, Account, AuthIdentity, Workspace, Membership, and roles have independent lifecycles.
+- WorkOS AuthKit is the managed production authentication adapter; Interlocks remains the identity-of-record for domain authorization.
+- MEMBER, REVIEWER, FIRMADMIN, and audited platform SUPERADMIN authority are centrally enforced.
+- Disclosures, canonical entities, aliases, matters, parties, professional relationships, and portable ledger entries are persistent.
+- Deterministic EXACT, STRONG, POSSIBLE, and RELATED matches include human-readable evidence. There is no numeric conflict score.
+- GREEN, YELLOW, and RED mean required action; a separate human disposition records professional judgment.
+- Assertions, point-in-time inferences, immutable documents, many-to-many evidence links, consent, screens, determinations, controls, and audit events are first-class.
+- Associated-person questions are bounded by an explicit disclosure scope.
+- CSV import is validated before an all-or-nothing commit. Personal, workspace, and check exports are purpose-specific.
+- SQLite schema changes use ordered migrations. PostgreSQL-native schema migrations and an adapter boundary are included for hosted cutover.
 
-- review prioritized conflict cases and their scoring factors;
-- submit a new disclosure tied to a person, organization, and active matter;
-- search and filter the review queue;
-- inspect the disclosure register and matter portfolio;
-- add evidence and review notes;
-- change case status;
-- record a reasoned decision and optional management control;
-- complete assigned controls;
-- export cases as CSV or the complete workspace as JSON;
-- restore the canonical demonstration workspace.
-
-## Verify it
+## Verify
 
 ```bash
 npm run test:all
 ```
 
-This runs linting, domain and SQLite integration tests, the production build,
-and a built-artifact check.
+This runs lint, domain and SQLite integration tests, the production build, a production HTTP workflow, and built-artifact validation.
 
-## Structure
+To bootstrap an existing account as the first platform administrator:
 
-- `app/components/interlocks-app.tsx` — complete interactive product surface
-- `app/api/` — transport routes for snapshot, disclosure, review, controls,
-  export, and reset workflows
-- `lib/domain/` — pure, explainable triage model
-- `lib/persistence/` — replaceable repository contract and SQLite adapter
-- `tests/` — scoring, transactional persistence, audit, reset, and product
-  contract coverage
-- `docs/architecture.md` — product boundaries, data model, and production path
+```bash
+npm run admin -- promote-superadmin proprietor@example.com "Initial proprietor bootstrap"
+```
 
-The persistence design and product flow are described in
-[`docs/architecture.md`](docs/architecture.md).
+The promotion is recorded as an immutable audit event.
+
+## Documentation
+
+- [`docs/architecture.md`](docs/architecture.md) — security and domain boundaries.
+- [`docs/legal-ethics-audit.md`](docs/legal-ethics-audit.md) — ABA-model legal ethics audit and product consequences.
+- [`docs/deployment.md`](docs/deployment.md) — production configuration and mechanical deployment checklist. No deployment has been performed.
+
