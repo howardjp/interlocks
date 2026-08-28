@@ -1,59 +1,58 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { AUTHORITY_STATUSES, evaluatePolicyPack } from "../lib/policy/policy-engine.mjs";
-import { LEGAL_POLICY_PACKS } from "../lib/policy/legal-policy-packs.mjs";
+import { AUTHORITY_STATUSES, evaluatePolicyPack, policyContentHash } from "../lib/policy/policy-engine.mjs";
+import { LEGAL_POLICY_CONFORMANCE_FIXTURES, LEGAL_POLICY_PACKS } from "../lib/policy/legal-policy-packs.mjs";
 
-const licensingPacks = LEGAL_POLICY_PACKS.filter((pack) => pack.authorityType !== "TRIBUNAL");
-const indicatorByCorrespondence = Object.freeze({
-  "aba.1.7-a-1": "CURRENT_CLIENT_ADVERSITY",
-  "aba.1.7-a-2": "FINANCIAL_INTEREST",
-  "aba.1.9": "FORMER_CLIENT_INTERSECTION",
-  "aba.1.11": "FORMER_GOVERNMENT_INTERSECTION",
-  "aba.1.18": "PROSPECTIVE_CLIENT_INTERSECTION",
-});
-const scenarios = Object.freeze(["MATCH", "ABSENT", "MATCH_WITH_NOISE", "DUPLICATE_WITH_NOISE"]);
+const MUTATIONS = 20;
+const evaluatedAt = "2026-08-28T12:00:00.000Z";
 
-function factsFor(indicatorType, scenario, mutation) {
-  const noise = Array.from({ length: mutation % 11 }, (_, index) => ({
-    type: `IRRELEVANT_${mutation}_${index}`,
-    evidenceId: `noise-${index}`,
-    detail: { order: mutation - index, retained: Boolean(index % 2) },
-  }));
-  if (scenario === "ABSENT") return { indicators: noise, mutation };
-  const target = { type: indicatorType, evidenceId: `target-${mutation}`, detail: { mutation } };
-  if (scenario === "MATCH") return { indicators: [target], mutation };
-  if (scenario === "MATCH_WITH_NOISE") {
-    const position = mutation % (noise.length + 1);
-    return { indicators: [...noise.slice(0, position), target, ...noise.slice(position)], mutation };
-  }
-  return { indicators: mutation % 2 ? [target, ...noise, structuredClone(target)] : [...noise, target, structuredClone(target)], mutation };
+function mutateFacts(fixture, mutation) {
+  const entries = Object.entries(structuredClone(fixture));
+  if (mutation % 2) entries.reverse();
+  const facts = Object.fromEntries(entries);
+  facts.indicators = Array.from({ length:mutation % 5 }, (_, index) => ({ type:`IRRELEVANT_${mutation}_${index}`, evidenceId:`noise-${index}`, detail:{ retained:Boolean(index % 2), order:mutation - index } }));
+  facts.conformanceNoise = { mutation, parity:mutation % 2, nested:{ stable:true, values:[mutation, mutation + 1] } };
+  return facts;
 }
 
-for (const pack of licensingPacks) {
-  for (const rule of pack.rules) {
-    const indicatorType = indicatorByCorrespondence[rule.correspondsTo];
-    if (!indicatorType) throw new Error(`Missing conformance indicator for ${rule.correspondsTo}`);
-    for (const scenario of scenarios) {
-      for (let mutation = 0; mutation < 100; mutation += 1) {
-        test(`policy conformance ${pack.id} ${rule.id} ${scenario} mutation ${mutation}`, () => {
-          const authorityStatus = AUTHORITY_STATUSES[mutation % AUTHORITY_STATUSES.length];
-          const result = evaluatePolicyPack(pack, factsFor(indicatorType, scenario, mutation), {
-            authorityStatus,
-            evaluatedAt: "2026-08-28T12:00:00.000Z",
-          });
-          const target = result.results.find((item) => item.ruleId === rule.id);
-          const expected = scenario === "ABSENT" ? "NOT_MATCHED" : "MATCHED";
+test("every installed rule has an explicit conformance fixture", () => {
+  for (const pack of LEGAL_POLICY_PACKS) {
+    const fixtures = LEGAL_POLICY_CONFORMANCE_FIXTURES[pack.id];
+    assert.ok(fixtures, `missing fixture set for ${pack.id}`);
+    assert.deepEqual(new Set(Object.keys(fixtures)), new Set(pack.rules.map((rule) => rule.id)));
+    for (const rule of pack.rules) {
+      assert.ok(fixtures[rule.id].matched);
+      assert.ok(fixtures[rule.id].notMatched);
+    }
+  }
+});
 
-          assert.equal(target.outcome, expected);
-          assert.equal(result.authorityStatus, authorityStatus);
-          assert.equal(result.packId, pack.id);
-          assert.equal(result.packHash, pack.contentHash);
-          assert.equal(Object.values(result.counts).reduce((sum, count) => sum + count, 0), pack.rules.length);
-          assert.equal(target.finding === null, expected === "NOT_MATCHED");
+for (const pack of LEGAL_POLICY_PACKS) {
+  for (const rule of pack.rules) {
+    const fixture = LEGAL_POLICY_CONFORMANCE_FIXTURES[pack.id][rule.id];
+    for (const [scenario, expected] of [["matched", "MATCHED"], ["notMatched", "NOT_MATCHED"], ["indeterminate", "INDETERMINATE"]]) {
+      if (!fixture[scenario]) continue;
+      for (let mutation = 0; mutation < MUTATIONS; mutation += 1) {
+        test(`policy conformance ${pack.id} ${rule.id} ${scenario} mutation ${mutation}`, () => {
+          const facts = mutateFacts(fixture[scenario], mutation);
+          const authorityStatus = AUTHORITY_STATUSES[mutation % AUTHORITY_STATUSES.length];
+          const evaluation = evaluatePolicyPack(pack, facts, { authorityStatus, evaluatedAt });
+          const result = evaluation.results.find((item) => item.ruleId === rule.id);
+
+          assert.equal(result.outcome, expected);
+          assert.equal(result.finding === null, expected === "NOT_MATCHED");
+          assert.equal(evaluation.authorityStatus, authorityStatus);
+          assert.equal(evaluation.packHash, pack.contentHash);
+          assert.equal(evaluation.evaluatedAt, evaluatedAt);
+          assert.equal(Object.values(evaluation.counts).reduce((sum, count) => sum + count, 0), pack.rules.length);
+          assert.match(policyContentHash(facts), /^[a-f0-9]{64}$/);
+          if (expected === "INDETERMINATE") {
+            assert.ok(result.missingFacts.length > 0);
+            assert.ok(result.unknownQuestions.length > 0);
+          }
         });
       }
     }
   }
 }
-
