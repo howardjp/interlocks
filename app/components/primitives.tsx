@@ -18,8 +18,7 @@ export function Avatar({name}:{name:string|null}) { return <span className="avat
 
 export function Empty({title,message}:{title:string;message:string}) { return <div className="empty"><span><Icon name="search"/></span><h3>{title}</h3><p>{message}</p></div>; }
 
-export function containDialogFocus(event:ReactKeyboardEvent<HTMLElement>,container:HTMLElement|null,onClose:()=>void) {
-  if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+export function containDialogFocus(event:ReactKeyboardEvent<HTMLElement>,container:HTMLElement|null) {
   if (event.key !== "Tab" || !container) return;
   const focusable=Array.from(container.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter((element)=>!element.hidden&&element.getAttribute("aria-hidden")!=="true");
   if (!focusable.length) { event.preventDefault(); container.focus(); return; }
@@ -28,10 +27,15 @@ export function containDialogFocus(event:ReactKeyboardEvent<HTMLElement>,contain
   else if (!event.shiftKey&&document.activeElement===last) { event.preventDefault(); first.focus(); }
 }
 
+export function useEscapeClose(onClose:()=>void) {
+  useEffect(()=>{const close=(event:KeyboardEvent)=>{if(event.key==="Escape"){event.preventDefault();onClose();}};document.addEventListener("keydown",close);return()=>document.removeEventListener("keydown",close);},[onClose]);
+}
+
 export function Modal({title,eyebrow,children,onClose,wide=false}:{title:string;eyebrow?:string;children:ReactNode;onClose:()=>void;wide?:boolean}) {
   const dialog=useRef<HTMLElement>(null);
+  useEscapeClose(onClose);
   useEffect(()=>{const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;dialog.current?.focus();return()=>previous?.focus();},[]);
-  return <div className="modal-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section ref={dialog} tabIndex={-1} onKeyDown={(event)=>containDialogFocus(event,dialog.current,onClose)} className={`modal ${wide?"wide":""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><div>{eyebrow?<p>{eyebrow}</p>:null}<h2 id="modal-title">{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close"/></button></header>{children}</section></div>;
+  return <div className="modal-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section ref={dialog} tabIndex={-1} onKeyDown={(event)=>containDialogFocus(event,dialog.current)} className={`modal ${wide?"wide":""}`} role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><div>{eyebrow?<p>{eyebrow}</p>:null}<h2 id="modal-title">{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close"/></button></header>{children}</section></div>;
 }
 
 export function SectionHeading({eyebrow,title,action}:{eyebrow:string;title:string;action?:ReactNode}) { return <div className="section-heading"><div><p>{eyebrow}</p><h2>{title}</h2></div>{action}</div>; }

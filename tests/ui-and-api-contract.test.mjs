@@ -94,13 +94,15 @@ test("modal announces itself, its title, and modality", () => {
 });
 
 test("modal supports Escape dismissal", () => {
-  assert.match(files.primitives, /event\.key === "Escape"/);
+  assert.match(files.primitives, /event\.key\s*===\s*"Escape"/);
+  assert.match(files.primitives, /document\.addEventListener\("keydown",close\)/);
+  assert.match(files.review, /useEscapeClose\(onClose\)/);
 });
 
 test("modal and case drawer contain keyboard focus", () => {
   assert.match(files.primitives, /event\.key !== "Tab"/);
   assert.match(files.primitives, /document\.activeElement===last/);
-  assert.match(files.review, /containDialogFocus\(event,drawer\.current,onClose\)/);
+  assert.match(files.review, /containDialogFocus\(event,drawer\.current\)/);
 });
 
 test("modal moves focus inside and restores previous focus", () => {
