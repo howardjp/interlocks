@@ -85,6 +85,10 @@ test("traffic lights always expose their state as visible text", () => {
   assert.match(files.primitives, /compact\?state:copy/);
 });
 
+test("review count does not alter the navigation control's accessible name", () => {
+  assert.match(files.app, /<b aria-hidden="true">\{data\.stats\.yellow\}<\/b>/);
+});
+
 test("modal announces itself, its title, and modality", () => {
   assert.match(files.primitives, /role="dialog" aria-modal="true" aria-labelledby="modal-title"/);
 });
