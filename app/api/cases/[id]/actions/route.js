@@ -1,15 +1,17 @@
+import { apiError, resolveRequestActor } from "@/lib/auth/request-actor.mjs";
 import { getRepository } from "@/lib/persistence/index.mjs";
 
 export const runtime = "nodejs";
 
 export async function POST(request, { params }) {
   try {
+    const repository = getRepository();
+    const actor = await resolveRequestActor(request, repository);
     const { id } = await params;
     const payload = await request.json();
-    const result = getRepository().recordCaseAction(id, payload, payload.actor || "Alex Morgan");
+    const result = repository.recordCaseAction(id, payload, actor.accountId);
     return Response.json({ result });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to update case";
-    return Response.json({ error: message }, { status: 400 });
+    return apiError(error);
   }
 }

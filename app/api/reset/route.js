@@ -1,13 +1,14 @@
+import { apiError, resolveRequestActor } from "@/lib/auth/request-actor.mjs";
 import { getRepository } from "@/lib/persistence/index.mjs";
 
 export const runtime = "nodejs";
 
 export async function POST(request) {
   try {
-    const payload = await request.json().catch(() => ({}));
-    return Response.json({ result: getRepository().resetDemo(payload.actor || "Alex Morgan") });
+    const repository = getRepository();
+    const actor = await resolveRequestActor(request, repository);
+    return Response.json({ result: repository.resetDemo(actor.accountId) });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to reset demo data";
-    return Response.json({ error: message }, { status: 400 });
+    return apiError(error);
   }
 }
