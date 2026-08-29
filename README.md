@@ -52,6 +52,17 @@ npm run test:browser
 
 CI runs both gates. See [`docs/testing.md`](docs/testing.md) for the assurance matrix, coverage floors, and regression policy.
 
+## Adversarial pre-alpha
+
+Interlocks includes a black-box synthetic-user campaign for browser-driving agents. The catalog currently covers partners, conflicts analysts, ethics counsel, Delaware litigators, family and lateral disclosures, reviewers, administrators, hostile members, accessibility, mobile use, imports, state abuse, audit reconstruction, and ambiguous entity matching.
+
+```bash
+npm run prealpha:list
+npm run --silent prealpha:prompt -- hostile-member-tenant-boundary --run-id tenant-001
+```
+
+The generated prompt gives an agent a persona, objectives, adversarial provocations, strict fictional-data and source-isolation rules, and a common evidence-report contract. See [`docs/pre-alpha.md`](docs/pre-alpha.md) for the Claude in Chrome workflow, campaign waves, and defect-triage protocol.
+
 To bootstrap an existing account as the first platform administrator:
 
 ```bash
@@ -67,3 +78,4 @@ The promotion is recorded as an immutable audit event.
 - [`docs/legal-ethics-audit.md`](docs/legal-ethics-audit.md) — ABA-model legal ethics audit and product consequences.
 - [`docs/deployment.md`](docs/deployment.md) — production configuration and mechanical deployment checklist. No deployment has been performed.
 - [`docs/testing.md`](docs/testing.md) — exhaustive test layers, commands, coverage floors, and CI policy.
+- [`docs/pre-alpha.md`](docs/pre-alpha.md) — synthetic-user browser campaign and triage protocol.
